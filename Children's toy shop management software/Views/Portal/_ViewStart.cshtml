@@ -1,0 +1,9 @@
+@{
+    var layout = "_ToyLayout";
+    if (string.Equals(Context.Request.Query["fragment"].ToString(), "1", StringComparison.Ordinal)
+        || string.Equals(Context.Request.Headers["X-SPA-Fragment"].ToString(), "1", StringComparison.Ordinal))
+    {
+        layout = "_ToyLayoutFragment";
+    }
+    Layout = layout;
+}

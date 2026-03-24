@@ -1,0 +1,38 @@
+@model Children_s_toy_shop_management_software.Models.Dashboard.DashboardPageVm
+
+<div class="ts-shell-page">
+    <div class="ts-shell-toolbar" style="padding:16px 18px;">
+        <div class="ts-kpis" style="margin-top:0;">
+            <div class="ts-kpi">
+                <div class="ts-kpi__label">Revenue today</div>
+                <div class="ts-kpi__value">@Model.RevenueToday.ToString("N0") ₫</div>
+                <div class="ts-kpi__trend">Real-time</div>
+            </div>
+            <div class="ts-kpi">
+                <div class="ts-kpi__label">Orders today</div>
+                <div class="ts-kpi__value">@Model.OrdersToday</div>
+                <div class="ts-kpi__trend">New orders</div>
+            </div>
+            <div class="ts-kpi">
+                <div class="ts-kpi__label">Low stock alerts</div>
+                <div class="ts-kpi__value">@Model.LowStockCount</div>
+                <div class="ts-kpi__trend">Products running low</div>
+            </div>
+            <div class="ts-kpi">
+                <div class="ts-kpi__label">Customers</div>
+                <div class="ts-kpi__value">@Model.CustomersCount</div>
+                <div class="ts-kpi__trend">Daily</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ts-shell-layout">
+        <div class="ts-shell-main ts-card" style="padding:14px;">
+            <div class="ts-placeholder" style="height:min(320px, 40vh);"></div>
+        </div>
+        <div class="ts-shell-side ts-card" style="padding:14px;">
+            <div class="ts-placeholder" style="height:min(320px, 40vh);"></div>
+        </div>
+    </div>
+</div>
+

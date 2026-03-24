@@ -1,0 +1,221 @@
+@model Children_s_toy_shop_management_software.Models.Reports.ReportsPageVm
+@{
+    var periodRevenue = Model.Orders.Sum(x => x.TotalAmount);
+    var printedAt = DateTime.Now;
+    var reportReceiptVm = new Children_s_toy_shop_management_software.Models.Shared.BillReceiptVm
+    {
+        RootId = "historyReceiptPrintable",
+        ExtraClass = "ts-sales-history-receipt",
+        DateText = Model.SelectedOrder?.OrderDate.ToString("dd/MM/yyyy") ?? string.Empty,
+        TimeText = Model.SelectedOrder?.OrderDate.ToString("HH:mm:ss") ?? string.Empty,
+        VoucherText = Model.SelectedOrder?.OrderId.ToString() ?? "—",
+        CashierText = string.IsNullOrWhiteSpace(Model.SelectedOrder?.UserName) ? "—" : Model.SelectedOrder!.UserName,
+        CustomerName = string.IsNullOrWhiteSpace(Model.SelectedOrder?.CustomerName) ? "—" : Model.SelectedOrder!.CustomerName,
+        CustomerPhone = string.IsNullOrWhiteSpace(Model.SelectedOrder?.CustomerPhone) ? "—" : Model.SelectedOrder!.CustomerPhone,
+        CustomerAddress = "—",
+        TotalText = $"{(Model.SelectedOrder?.TotalAmount ?? 0):N0} VND",
+        AmountWords = $"( {(Model.SelectedOrder?.TotalAmount ?? 0):N0} VND )",
+        CashPaidText = $"{(Model.SelectedOrder?.TotalAmount ?? 0):N0} ₫",
+        ChangeText = "0 ₫",
+        ShowCashInfo = true,
+        ShowVnPayInfo = false,
+        ShowQr = false,
+        QrCanvasId = "historyReceiptQrCanvas",
+        Lines = Model.OrderDetails.Select(d => new Children_s_toy_shop_management_software.Models.Shared.BillReceiptLineVm
+        {
+            ProductName = d.ProductName,
+            Quantity = d.Quantity,
+            UnitPrice = d.UnitPrice,
+            LineTotal = d.LineTotal
+        }).ToList()
+    };
+}
+
+<div class="ts-shell-page">
+<div class="ts-shell-toolbar">
+    <form method="get" asp-action="Reports" asp-controller="Portal">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="ts-card_sub mb-1 d-block text-white-50 small">From</label>
+                <input class="form-control" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="ts-card_sub mb-1 d-block text-white-50 small">To</label>
+                <input class="form-control" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="ts-card_sub mb-1 d-block text-white-50 small">Status</label>
+                <select class="form-select" name="status">
+                    <option value="" selected="@(string.IsNullOrWhiteSpace(Model.Status))">All Status</option>
+                    <option value="Paid" selected="@(string.Equals(Model.Status, "Paid", StringComparison.OrdinalIgnoreCase))">Paid</option>
+                    <option value="Cancelled" selected="@(string.Equals(Model.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))">Cancelled</option>
+                    <option value="Refunded" selected="@(string.Equals(Model.Status, "Refunded", StringComparison.OrdinalIgnoreCase))">Refunded</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="ts-card_sub mb-1 d-block text-white-50 small">Payment Method</label>
+                <select class="form-select" name="paymentMethod">
+                    <option value="" selected="@(string.IsNullOrWhiteSpace(Model.PaymentMethod))">All Methods</option>
+                    <option value="Cash" selected="@(string.Equals(Model.PaymentMethod, "Cash", StringComparison.OrdinalIgnoreCase))">Cash</option>
+                    <option value="VNPay" selected="@(string.Equals(Model.PaymentMethod, "VNPay", StringComparison.OrdinalIgnoreCase))">VNPay</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="ts-card_sub mb-1 d-block text-white-50 small">Search</label>
+                <input class="form-control" type="search" name="search" value="@Model.Search" placeholder="OrderId / Customer..." />
+            </div>
+
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-primary">Apply</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+    <div class="ts-shell-layout ts-shell-layout--sales-history">
+        <div class="ts-shell-main ts-card" style="padding:14px;">
+        <div class="ts-sales-history-revenue">
+            [ Total revenue this period: <strong>@periodRevenue.ToString("N0") VND</strong> ]
+        </div>
+        <div class="ts-table-scroll">
+            <table class="table table-sm align-middle mb-0 ts-reports-table">
+                <colgroup>
+                    <col style="width:5%;" />
+                    <col style="width:10%;" />
+                    <col style="width:21%;" />
+                    <col style="width:30%;" />
+                    <col style="width:18%;" />
+                    <col style="width:16%;" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Cashier</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in Model.Orders)
+                    {
+                        var isSelected = Model.SelectedOrder?.OrderId == o.OrderId;
+                        var statusRaw = (o.Status ?? string.Empty).Trim();
+                        var statusNorm = statusRaw.ToLowerInvariant();
+                        var statusDotClass = statusNorm switch
+                        {
+                            "paid" => "ts-order-dot ts-order-dot--paid",
+                            "cancelled" => "ts-order-dot ts-order-dot--cancelled",
+                            "pending" => "ts-order-dot ts-order-dot--pending",
+                            _ => "ts-order-dot ts-order-dot--pending"
+                        };
+                        <tr class="ts-reports-table__row-link @(isSelected ? "ts-reports-table__row--selected" : "")">
+                            <td><span class="@statusDotClass" title="@statusRaw"></span></td>
+                            <td>
+                                <a asp-action="Reports" asp-controller="Portal"
+                                   asp-route-id="@o.OrderId"
+                                   asp-route-from="@Model.From.ToString("yyyy-MM-dd")"
+                                   asp-route-to="@Model.To.ToString("yyyy-MM-dd")"
+                                   asp-route-status="@Model.Status"
+                                   asp-route-paymentMethod="@Model.PaymentMethod"
+                                   asp-route-search="@Model.Search"
+                                   data-spa-get="1"
+                                   class="text-decoration-none text-light">
+                                    @o.OrderId
+                                </a>
+                            </td>
+                            <td>@o.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @(string.IsNullOrWhiteSpace(o.CustomerName) ? "-" : o.CustomerName)
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(o.UserName) ? "-" : o.UserName)</td>
+                            <td>@o.TotalAmount.ToString("N0") ₫</td>
+                        </tr>
+                    }
+                    @if (Model.Orders.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" style="color:rgba(255,255,255,.7);">No orders found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        </div>
+
+    <div class="ts-shell-side ts-card ts-sales-history-receipt-shell" style="padding:14px;">
+        @if (Model.SelectedOrder == null)
+        {
+            <div class="ts-shell-empty ts-placeholder" style="height:min(440px, 55vh); border:none; background:transparent;">
+                <div style="font-weight:900; color:rgba(255,255,255,.85);">Select an order</div>
+            </div>
+        }
+        else
+        {
+            <partial name="_BillReceipt" model="reportReceiptVm" />
+            <div class="ts-sales-history-actions">
+                <button type="button" class="btn btn-outline-light" onclick="printSalesHistoryReceipt()">Reprint</button>
+                <button type="button" class="btn btn-outline-danger" disabled title="Cancel order from history is not enabled yet">Cancel order</button>
+            </div>
+        }
+    </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const rows = document.querySelectorAll('.ts-reports-table__row-link');
+        rows.forEach(function (row) {
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', function (ev) {
+                const target = ev.target;
+                if (target && target.closest('a,button,input,select,textarea,label')) return;
+                const link = row.querySelector('a[data-spa-get="1"]');
+                if (link) link.click();
+            });
+        });
+    })();
+
+    function printSalesHistoryReceipt() {
+        const receipt = document.getElementById('historyReceiptPrintable');
+        if (!receipt) return;
+
+        const printWin = window.open('', '_blank', 'width=460,height=900');
+        if (!printWin) return;
+
+        const doc = printWin.document;
+        doc.open();
+        doc.write('');
+        doc.close();
+        doc.head.innerHTML = '';
+        doc.body.innerHTML = '';
+
+        const meta = doc.createElement('meta');
+        meta.setAttribute('charset', 'utf-8');
+        doc.head.appendChild(meta);
+
+        const title = doc.createElement('title');
+        title.textContent = 'Receipt';
+        doc.head.appendChild(title);
+
+        const cssLink = doc.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = '@Url.Content("~/css/toyshop-dark.css")';
+        doc.head.appendChild(cssLink);
+
+        const inlineStyle = doc.createElement('style');
+        inlineStyle.textContent = 'body{margin:0;padding:14px;background:#ffffff;color:#111111;}';
+        doc.head.appendChild(inlineStyle);
+
+        doc.body.appendChild(doc.importNode(receipt, true));
+
+        printWin.focus();
+        setTimeout(function () { printWin.print(); printWin.close(); }, 300);
+    }
+</script>
+

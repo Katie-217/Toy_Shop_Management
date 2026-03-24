@@ -1,0 +1,6 @@
+@{
+    var title = ViewData["Title"] as string ?? "Toy Shop";
+}
+<div id="ts-fragment-root" class="ts-page ts-page--spa-swap" data-page-title="@title">
+    @RenderBody()
+</div>
