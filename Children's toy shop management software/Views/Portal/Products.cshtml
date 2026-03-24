@@ -1,0 +1,188 @@
+@model Children_s_toy_shop_management_software.Models.Products.ProductsPageVm
+
+<div class="ts-shell-page">
+    <div class="ts-shell-toolbar">
+        <form method="get"
+              asp-action="Products"
+              asp-controller="Portal">
+            <div class="ts-shell-toolbar__row">
+                <div style="flex:1; min-width:240px;">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Search</label>
+                    <input class="form-control"
+                           name="search"
+                           value="@Model.Search"
+                           placeholder="Name or barcode" />
+                </div>
+
+                <div style="min-width:190px;">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Category</label>
+                    <select class="form-select" name="categoryId">
+                        <option value="">All</option>
+                        @foreach (var c in Model.Categories)
+                        {
+                            <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div style="min-width:190px;">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Age</label>
+                    <select class="form-select" name="ageRange">
+                        <option value="">All</option>
+                        @foreach (var a in Model.AgeRanges)
+                        {
+                            <option value="@a" selected="@(Model.AgeRange == a)">@a</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a class="btn btn-outline-light"
+                       asp-action="Products"
+                       asp-controller="Portal">
+                        Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="ts-shell-layout">
+        <div class="ts-shell-main ts-card" style="padding:14px;">
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="alert alert-danger mb-3">@Model.Error</div>
+        }
+
+        <div class="ts-table-scroll">
+            <table class="table table-dark table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:70px;">ID</th>
+                        <th>Name</th>
+                        <th style="width:150px;">Category</th>
+                        <th style="width:120px;">Age</th>
+                        <th style="width:120px;">Price</th>
+                        <th style="width:90px;">Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var p in Model.Products)
+                {
+                    var isSelected = Model.SelectedProduct?.Id == p.Id;
+                    <tr class="@(isSelected ? "table-primary" : "")">
+                        <td>
+                            <a asp-action="Products"
+                               asp-controller="Portal"
+                               asp-route-id="@p.Id"
+                               asp-route-search="@Model.Search"
+                               asp-route-categoryId="@Model.CategoryId"
+                               asp-route-ageRange="@Model.AgeRange"
+                               class="text-decoration-none text-light">
+                                @p.Id
+                            </a>
+                        </td>
+                        <td>@p.Name</td>
+                        <td>@p.CategoryName</td>
+                        <td>@p.AgeRange</td>
+                        <td>@p.SellPrice.ToString("N0") ₫</td>
+                        <td>@p.Quantity</td>
+                    </tr>
+                }
+                @if (Model.Products.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" style="color:rgba(255,255,255,.75);">No products found.</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        </div>
+
+    <div class="ts-shell-side ts-card" style="padding:14px;">
+        <div class="ts-card__title" style="margin-bottom:6px;">
+            @(Model.Form.ProductId.HasValue ? "Edit product" : "Create product")
+        </div>
+        <div style="margin-bottom:12px;"></div>
+
+        <form method="post"
+              asp-action="ProductsSave"
+              asp-controller="Portal"
+              asp-route-search="@Model.Search"
+              asp-route-categoryId="@Model.CategoryId"
+              asp-route-ageRange="@Model.AgeRange"
+              enctype="multipart/form-data">
+            <input type="hidden" asp-for="Form.ProductId" />
+            <input type="hidden" asp-for="Form.ExistingImagePath" />
+
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Barcode</label>
+                    <input class="form-control" asp-for="Form.Barcode" />
+                </div>
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Name</label>
+                    <input class="form-control" asp-for="Form.Name" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Category</label>
+                    <input class="form-control" asp-for="Form.CategoryName" />
+                </div>
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Age range</label>
+                    <input class="form-control" asp-for="Form.AgeRange" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Import price</label>
+                    <input class="form-control" asp-for="Form.ImportPrice" type="number" step="0.01" />
+                </div>
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Sell price</label>
+                    <input class="form-control" asp-for="Form.SellPrice" type="number" step="0.01" />
+                </div>
+
+                <div class="col-12">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Image</label>
+                    <input class="form-control" asp-for="Form.ImageFile" type="file" accept="image/*" />
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Form.ExistingImagePath) && Model.Form.ExistingImagePath.StartsWith("/"))
+                    {
+                        <div style="margin-top:10px;">
+                            <img src="@Model.Form.ExistingImagePath" alt="product image"
+                                 style="width:140px; height:90px; object-fit:cover; border-radius:14px; border:1px solid rgba(255,255,255,.12);" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div style="height:14px;"></div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary">
+                    @(Model.Form.ProductId.HasValue ? "Update" : "Create")
+                </button>
+            </div>
+        </form>
+
+        @if (Model.Form.ProductId.HasValue)
+        {
+            <form method="post"
+                  asp-action="ProductsDelete"
+                  asp-controller="Portal"
+                  asp-route-search="@Model.Search"
+                  asp-route-categoryId="@Model.CategoryId"
+                  asp-route-ageRange="@Model.AgeRange"
+                  style="margin-top:14px;"
+                  onsubmit="return confirm('Delete this product? Stock will follow the same rule as the original app.');">
+                <input type="hidden" name="productId" value="@Model.Form.ProductId.Value" />
+                <button type="submit" class="btn btn-outline-danger w-100">Delete</button>
+            </form>
+        }
+    </div>
+    </div>
+</div>
+

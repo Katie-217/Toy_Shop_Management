@@ -1,0 +1,141 @@
+@model Children_s_toy_shop_management_software.Models.POS.PosReceiptVm
+
+
+<div class="ts-card" style="padding:18px; max-width:820px; margin:0 auto;">
+    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-start;">
+        <div>
+            <div class="ts-card__title" style="font-size:18px; margin-bottom:6px;">Receipt</div>
+            <div class="ts-card__sub">Order #@Model.OrderId</div>
+            <div class="ts-card__sub" style="margin-top:6px;">
+                @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")
+            </div>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-light" onclick="window.print()">Print</button>
+        </div>
+    </div>
+
+    <div style="height:14px;"></div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="ts-kpi" style="padding:12px;">
+            <div class="ts-kpi__label">Customer</div>
+            <div class="ts-kpi__value" style="font-size:16px;">
+                @(string.IsNullOrWhiteSpace(Model.CustomerName) ? "Walk-in customer" : Model.CustomerName)
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.CustomerPhone))
+            {
+                <div class="ts-kpi__value" style="font-size:14px; color:rgba(255,255,255,.75);">
+                    @Model.CustomerPhone
+                </div>
+            }
+        </div>
+        <div class="ts-kpi" style="padding:12px;">
+            <div class="ts-kpi__label">Total</div>
+            <div class="ts-kpi__value" style="font-size:20px;">@Model.GrandTotal.ToString("N0") ₫</div>
+        </div>
+    </div>
+
+    <div style="height:14px;"></div>
+
+    <div style="max-height:380px; overflow:auto; border-radius:16px;">
+        <table class="table table-dark table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="width:100px;">Code</th>
+                    <th>Product</th>
+                    <th style="width:80px;">Qty</th>
+                    <th style="width:120px;">Unit</th>
+                    <th style="width:140px;">Line total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.Lines)
+                {
+                    <tr>
+                        <td>@l.Code</td>
+                        <td>@l.Name</td>
+                        <td>@l.Qty</td>
+                        <td>@l.UnitPrice.ToString("N0") ₫</td>
+                        <td>@l.LineTotal.ToString("N0") ₫</td>
+                    </tr>
+                }
+                @if (Model.Lines.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" style="color:rgba(255,255,255,.7);">No lines.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div style="height:14px;"></div>
+
+    <div class="ts-card" style="padding:12px; background:rgba(255,255,255,.03);">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div class="ts-kpi" style="padding:10px;">
+                <div class="ts-kpi__label">Subtotal</div>
+                <div class="ts-kpi__value">@Model.SubTotal.ToString("N0") ₫</div>
+            </div>
+            <div class="ts-kpi" style="padding:10px;">
+                <div class="ts-kpi__label">Discount</div>
+                <div class="ts-kpi__value">@Model.Discount.ToString("N0") ₫</div>
+            </div>
+        </div>
+
+        <div style="height:10px;"></div>
+
+        <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div style="font-weight:900;">Grand total</div>
+            <div style="font-weight:900; color:rgba(255,255,255,.95); font-size:18px;">
+                @Model.GrandTotal.ToString("N0") ₫
+            </div>
+        </div>
+
+        <div style="height:10px;"></div>
+
+        @if (string.Equals(Model.PaymentMethod, "cash", StringComparison.OrdinalIgnoreCase))
+        {
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="ts-kpi" style="padding:10px;">
+                    <div class="ts-kpi__label">Cash received</div>
+                    <div class="ts-kpi__value">@Model.Cash.ToString("N0") ₫</div>
+                </div>
+                <div class="ts-kpi" style="padding:10px;">
+                    <div class="ts-kpi__label">Change</div>
+                    <div class="ts-kpi__value">@Model.Change.ToString("N0") ₫</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="ts-card" style="padding:12px; background:rgba(255,255,255,.03); margin-top:10px;">
+                <div class="ts-card__title" style="margin-bottom:6px;">VNPay QR</div>
+                <div style="display:flex; justify-content:center; padding:10px 0;">
+                    <canvas id="vnPayReceiptQr" width="200" height="200"></canvas>
+                </div>
+                <div class="ts-card__sub" style="text-align:center; color:rgba(255,255,255,.7);">
+                    Scan to pay
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+    (function () {
+        const pm = '@(Model.PaymentMethod ?? "cash")';
+        if (pm.toLowerCase() !== 'vnpay') return;
+
+        const qrValue = '@(Model.PaymentQrValue ?? "")';
+        if (!qrValue) return;
+
+        const canvas = document.getElementById('vnPayReceiptQr');
+        if (!canvas || !window.QRCode) return;
+
+        window.QRCode.toCanvas(canvas, qrValue, { errorCorrectionLevel: 'M' });
+    })();
+</script>
+

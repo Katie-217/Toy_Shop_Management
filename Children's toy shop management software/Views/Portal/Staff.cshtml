@@ -1,0 +1,325 @@
+@model Children_s_toy_shop_management_software.Models.Staff.StaffPageVm
+
+<div class="ts-shell-page ts-shell-page--staff">
+    <div class="ts-shell-layout ts-staff-layout">
+        <div class="ts-shell-main ts-card" style="padding:14px;">
+        <form id="staffFilterForm"
+              method="get"
+              asp-action="Staff"
+              asp-controller="Portal"
+              style="margin-bottom:10px;">
+            <input type="hidden" id="staffSortIndexInput" name="sortIndex" value="@(Model.SortIndex == 4 ? 4 : 3)" />
+            <div style="display:flex; gap:10px; align-items:end;">
+                <div style="flex:1; min-width:0;">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Search</label>
+                    <input id="staffSearchInput"
+                           class="form-control"
+                           name="search"
+                           value="@Model.Search"
+                           placeholder="Search by name..." />
+                </div>
+                <button type="button"
+                        id="staffSortToggleBtn"
+                        class="btn btn-outline-light"
+                        title="Toggle name sort (A-Z / Z-A)"
+                        aria-label="Toggle name sort"
+                        data-sort-index="@(Model.SortIndex == 4 ? 4 : 3)"
+                        style="min-width:96px;">
+                    @(Model.SortIndex == 4 ? "Z → A" : "A → Z")
+                </button>
+                <button type="submit" class="btn btn-primary" style="min-width:84px;">Search</button>
+            </div>
+        </form>
+        <div class="ts-table-scroll ts-staff-table-scroll">
+            <table class="table table-sm align-middle mb-0 ts-staff-table" id="staffListTable">
+                <colgroup>
+                    <col style="width:10%;" />
+                    <col style="width:46%;" />
+                    <col style="width:22%;" />
+                    <col style="width:12%;" />
+                    <col style="width:10%;" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full name</th>
+                        <th>Position</th>
+                        <th>Birth date</th>
+                        <th>Gender</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in Model.Employees)
+                    {
+                        <tr data-staff-name="@e.FullName"
+                            data-id="@e.Id"
+                            data-fullname="@e.FullName"
+                            data-gender="@e.Gender"
+                            data-birth="@e.BirthDate.ToString("yyyy-MM-dd")"
+                            data-position="@e.PositionTitle"
+                            data-phone="@e.Phone"
+                            data-address="@e.Address"
+                            data-image="@e.ImagePath">
+                            <td>@e.Id</td>
+                            <td>@e.FullName</td>
+                            <td>@e.PositionTitle</td>
+                            <td>@e.BirthDate.ToString("dd/MM/yyyy")</td>
+                            <td>@e.Gender</td>
+                        </tr>
+                    }
+                    @if (Model.Employees.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" style="color:rgba(255,255,255,.7);">No staff found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        </div>
+
+    <div class="ts-shell-side ts-card" style="padding:14px; overflow:auto;">
+        <div style="margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+            <div class="ts-card__title" style="margin-bottom:0;">
+                @(Model.Form.EmployeeId.HasValue ? "Edit employee" : "Create employee")
+            </div>
+        </div>
+
+        <form method="post"
+              asp-action="StaffSave"
+              asp-controller="Portal"
+              asp-route-search="@Model.Search"
+              asp-route-sortIndex="@Model.SortIndex"
+              enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" asp-for="Form.EmployeeId" />
+            <input type="hidden" asp-for="Form.ExistingImagePath" />
+            <input type="hidden" asp-for="Form.ImagePath" />
+
+            <div class="row g-2">
+                <div class="col-12">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Image</label>
+                    <div id="staffImageDropzone" class="ts-staff-dropzone">
+                        <input id="staffImageFileInput" class="d-none" asp-for="Form.ImageFile" type="file" accept="image/*" />
+                        <div id="staffImageDropHint"
+                             class="ts-staff-dropzone__hint"
+                             style="@(string.IsNullOrWhiteSpace(Model.Form.ExistingImagePath) ? "" : "display:none;")">
+                            Drop image here or click to choose file
+                        </div>
+                        <img id="staffImagePreview"
+                             class="ts-staff-dropzone__preview"
+                             src="@Model.Form.ExistingImagePath"
+                             alt="Staff image preview"
+                             style="@(string.IsNullOrWhiteSpace(Model.Form.ExistingImagePath) ? "display:none;" : "")" />
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Full name</label>
+                    <input class="form-control" asp-for="Form.FullName" />
+                </div>
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Gender</label>
+                    <input class="form-control" asp-for="Form.Gender" placeholder="Male / Female" />
+                </div>
+                <div class="col-md-6">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Birth date</label>
+                    <input class="form-control" asp-for="Form.BirthDate" type="date" />
+                </div>
+                <div class="col-12">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Position</label>
+                    <input class="form-control" asp-for="Form.PositionTitle" placeholder="e.g. Cashier / Store Manager" />
+                </div>
+                <div class="col-12">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Phone</label>
+                    <input class="form-control" asp-for="Form.Phone" />
+                </div>
+                <div class="col-12">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Address</label>
+                    <input class="form-control" asp-for="Form.Address" />
+                </div>
+            </div>
+
+            <div style="height:14px;"></div>
+
+            <div class="row g-2">
+                <div class="col-6 d-grid">
+                    <button type="submit" class="btn btn-success">Save</button>
+                </div>
+                <div class="col-6 d-grid">
+                    <button type="submit"
+                            id="staffDeleteBtn"
+                            class="btn btn-outline-danger"
+                            style="border-color:#ef4444; color:#ef4444; display:none;"
+                            form="staffDeleteForm"
+                            onclick="return confirm('Delete this employee?');">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </form>
+        <form method="post"
+              id="staffDeleteForm"
+              asp-action="StaffDelete"
+              asp-controller="Portal"
+              asp-route-search="@Model.Search"
+              asp-route-sortIndex="@Model.SortIndex"
+              style="display:none;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="staffDeleteEmployeeId" name="employeeId" value="" />
+        </form>
+    </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const searchInput = document.getElementById('staffSearchInput');
+        const table = document.getElementById('staffListTable');
+        const sortBtn = document.getElementById('staffSortToggleBtn');
+        const sortInput = document.getElementById('staffSortIndexInput');
+        const form = document.getElementById('staffFilterForm');
+        const employeeIdInput = document.getElementById('Form_EmployeeId');
+        const fullNameInput = document.getElementById('Form_FullName');
+        const genderInput = document.getElementById('Form_Gender');
+        const birthInput = document.getElementById('Form_BirthDate');
+        const positionInput = document.getElementById('Form_PositionTitle');
+        const phoneInput = document.getElementById('Form_Phone');
+        const addressInput = document.getElementById('Form_Address');
+        const existingImageInput = document.getElementById('Form_ExistingImagePath');
+        const imagePathInput = document.getElementById('Form_ImagePath');
+        const deleteBtn = document.getElementById('staffDeleteBtn');
+        const deleteEmployeeIdInput = document.getElementById('staffDeleteEmployeeId');
+        const dropzone = document.getElementById('staffImageDropzone');
+        const fileInput = document.getElementById('staffImageFileInput');
+        const preview = document.getElementById('staffImagePreview');
+        const hint = document.getElementById('staffImageDropHint');
+
+        function normalizeText(s) {
+            if (!s) return '';
+            try {
+                return String(s)
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim();
+            } catch {
+                return String(s).toLowerCase().trim();
+            }
+        }
+
+        if (searchInput && table) {
+            const rows = table.querySelectorAll('tbody tr[data-staff-name]');
+            searchInput.addEventListener('input', function () {
+                const q = normalizeText(searchInput.value);
+                rows.forEach(function (row) {
+                    const name = normalizeText(row.getAttribute('data-staff-name') || '');
+                    row.style.display = !q || name.indexOf(q) !== -1 ? '' : 'none';
+                });
+            });
+
+            function resetFormToCreateMode() {
+                if (employeeIdInput) employeeIdInput.value = '';
+                if (fullNameInput) fullNameInput.value = '';
+                if (genderInput) genderInput.value = 'Male';
+                if (birthInput) birthInput.value = '';
+                if (positionInput) positionInput.value = '';
+                if (phoneInput) phoneInput.value = '';
+                if (addressInput) addressInput.value = '';
+                if (existingImageInput) existingImageInput.value = '';
+                if (imagePathInput) imagePathInput.value = '';
+                if (deleteEmployeeIdInput) deleteEmployeeIdInput.value = '';
+                if (deleteBtn) deleteBtn.style.display = 'none';
+                if (preview) {
+                    preview.src = '';
+                    preview.style.display = 'none';
+                }
+                if (hint) hint.style.display = '';
+                rows.forEach(function (r) { r.classList.remove('ts-staff-table__row--selected'); });
+            }
+
+            // Default state: no selected employee, empty form.
+            resetFormToCreateMode();
+
+            rows.forEach(function (row) {
+                row.style.cursor = 'pointer';
+                row.addEventListener('click', function (e) {
+                    const interactive = e.target.closest('a,button,input,select,textarea,label,form');
+                    if (interactive) return;
+                    rows.forEach(function (r) { r.classList.remove('ts-staff-table__row--selected'); });
+                    row.classList.add('ts-staff-table__row--selected');
+
+                    if (employeeIdInput) employeeIdInput.value = row.getAttribute('data-id') || '';
+                    if (fullNameInput) fullNameInput.value = row.getAttribute('data-fullname') || '';
+                    if (genderInput) genderInput.value = row.getAttribute('data-gender') || 'Male';
+                    if (birthInput) birthInput.value = row.getAttribute('data-birth') || '';
+                    if (positionInput) positionInput.value = row.getAttribute('data-position') || '';
+                    if (phoneInput) phoneInput.value = row.getAttribute('data-phone') || '';
+                    if (addressInput) addressInput.value = row.getAttribute('data-address') || '';
+
+                    const img = row.getAttribute('data-image') || '';
+                    if (existingImageInput) existingImageInput.value = img;
+                    if (imagePathInput) imagePathInput.value = img;
+                    if (deleteEmployeeIdInput) deleteEmployeeIdInput.value = row.getAttribute('data-id') || '';
+                    if (deleteBtn) deleteBtn.style.display = '';
+
+                    if (preview) {
+                        if (img) {
+                            preview.src = img;
+                            preview.style.display = '';
+                            if (hint) hint.style.display = 'none';
+                        } else {
+                            preview.src = '';
+                            preview.style.display = 'none';
+                            if (hint) hint.style.display = '';
+                        }
+                    }
+                });
+            });
+        }
+
+        if (sortBtn && sortInput && form) {
+            sortBtn.addEventListener('click', function () {
+                const current = parseInt(sortBtn.getAttribute('data-sort-index') || '3', 10);
+                const next = current === 4 ? 3 : 4;
+                sortBtn.setAttribute('data-sort-index', String(next));
+                sortInput.value = String(next);
+                sortBtn.textContent = next === 4 ? 'Z → A' : 'A → Z';
+                form.requestSubmit ? form.requestSubmit() : form.submit();
+            });
+        }
+
+        if (dropzone && fileInput && preview && hint) {
+            function previewFile(file) {
+                if (!file || !file.type || file.type.indexOf('image/') !== 0) return;
+                const url = URL.createObjectURL(file);
+                preview.src = url;
+                preview.style.display = '';
+                hint.style.display = 'none';
+            }
+
+            dropzone.addEventListener('click', function () { fileInput.click(); });
+            fileInput.addEventListener('change', function () {
+                const f = fileInput.files && fileInput.files[0];
+                if (f) previewFile(f);
+            });
+            dropzone.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                dropzone.classList.add('is-dragover');
+            });
+            dropzone.addEventListener('dragleave', function () {
+                dropzone.classList.remove('is-dragover');
+            });
+            dropzone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dropzone.classList.remove('is-dragover');
+                if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+                const dt = new DataTransfer();
+                dt.items.add(e.dataTransfer.files[0]);
+                fileInput.files = dt.files;
+                previewFile(e.dataTransfer.files[0]);
+            });
+        }
+    })();
+</script>
+

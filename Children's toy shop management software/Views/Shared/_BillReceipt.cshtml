@@ -1,0 +1,163 @@
+@model Children_s_toy_shop_management_software.Models.Shared.BillReceiptVm
+
+<div class="ts-bill-receipt @(Model.ExtraClass ?? string.Empty)" id="@Model.RootId">
+    <div class="ts-bill-receipt__brand">@Model.Brand</div>
+    <div class="ts-bill-receipt__contact">
+        @Model.AddressLine<br />
+        @Model.HotlineLine<br />
+        @Model.EmailLine
+    </div>
+    <h2 class="ts-bill-receipt__title" id="billModalTitle">@Model.Title</h2>
+
+    <div class="ts-bill-receipt__meta">
+        <div class="ts-bill-receipt__meta-col">
+            <div>
+                <span class="ts-bill-receipt__meta-label">Date</span>
+                @if (!string.IsNullOrWhiteSpace(Model.DateElementId))
+                {
+                    <span id="@Model.DateElementId">@Model.DateText</span>
+                }
+                else
+                {
+                    <span>@Model.DateText</span>
+                }
+            </div>
+            <div><span class="ts-bill-receipt__meta-label">Cashier</span> <span>@Model.CashierText</span></div>
+        </div>
+        <div class="ts-bill-receipt__meta-col ts-bill-receipt__meta-col--right">
+            <div>
+                <span class="ts-bill-receipt__meta-label">No.</span>
+                @if (!string.IsNullOrWhiteSpace(Model.VoucherElementId))
+                {
+                    <span id="@Model.VoucherElementId">@Model.VoucherText</span>
+                }
+                else
+                {
+                    <span>@Model.VoucherText</span>
+                }
+            </div>
+            <div>
+                <span class="ts-bill-receipt__meta-label">Time</span>
+                @if (!string.IsNullOrWhiteSpace(Model.TimeElementId))
+                {
+                    <span id="@Model.TimeElementId">@Model.TimeText</span>
+                }
+                else
+                {
+                    <span>@Model.TimeText</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="ts-bill-receipt__cust">
+        <div>
+            <strong>Customer:</strong>
+            @if (!string.IsNullOrWhiteSpace(Model.CustomerNameElementId))
+            {
+                <span id="@Model.CustomerNameElementId">@Model.CustomerName</span>
+            }
+            else
+            {
+                <span>@Model.CustomerName</span>
+            }
+        </div>
+        <div>
+            <strong>Phone:</strong>
+            @if (!string.IsNullOrWhiteSpace(Model.CustomerPhoneElementId))
+            {
+                <span id="@Model.CustomerPhoneElementId">@Model.CustomerPhone</span>
+            }
+            else
+            {
+                <span>@Model.CustomerPhone</span>
+            }
+        </div>
+        <div>
+            <strong>Address:</strong>
+            @if (!string.IsNullOrWhiteSpace(Model.CustomerAddressElementId))
+            {
+                <span id="@Model.CustomerAddressElementId">@Model.CustomerAddress</span>
+            }
+            else
+            {
+                <span>@Model.CustomerAddress</span>
+            }
+        </div>
+    </div>
+
+    <div class="ts-bill-receipt__table-wrap">
+        <table class="ts-bill-receipt__table">
+            <thead>
+                <tr>
+                    <th class="ts-bill-col-item">Product</th>
+                    <th class="ts-bill-col-qty">Quantity</th>
+                    <th class="ts-bill-col-price">Unit Price</th>
+                    <th class="ts-bill-col-amt">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var line in Model.Lines)
+            {
+                <tr>
+                    <td>@line.ProductName</td>
+                    <td class="num">@line.Quantity</td>
+                    <td class="num">@line.UnitPrice.ToString("N0")</td>
+                    <td class="num">@line.LineTotal.ToString("N0")</td>
+                </tr>
+            }
+            @if (Model.Lines.Count == 0)
+            {
+                <tr>
+                    <td colspan="4" class="ts-bill-receipt__empty">No products.</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="ts-bill-receipt__totals">
+        <div class="ts-bill-receipt__grand">
+            <span>Total</span>
+            @if (!string.IsNullOrWhiteSpace(Model.TotalElementId))
+            {
+                <span id="@Model.TotalElementId">@Model.TotalText</span>
+            }
+            else
+            {
+                <span>@Model.TotalText</span>
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.AmountWordsElementId))
+        {
+            <div class="ts-bill-receipt__words" id="@Model.AmountWordsElementId">@Model.AmountWords</div>
+        }
+        else
+        {
+            <div class="ts-bill-receipt__words">@Model.AmountWords</div>
+        }
+    </div>
+
+    @if (Model.ShowCashInfo)
+    {
+        <div class="ts-bill-receipt__payinfo" id="@Model.CashInfoElementId">
+            <div><span>Customer paid:</span> <strong id="@Model.CashElementId">@Model.CashPaidText</strong></div>
+            <div><span>Change:</span> <strong id="@Model.ChangeElementId">@Model.ChangeText</strong></div>
+        </div>
+    }
+    @if (Model.ShowVnPayInfo)
+    {
+        <div class="ts-bill-receipt__payinfo" id="@Model.VnPayInfoElementId">
+            <div><strong>@Model.VnPayInfoText</strong></div>
+        </div>
+    }
+
+    @if (Model.ShowQr)
+    {
+        <div class="ts-bill-receipt__qr">
+            <canvas id="@Model.QrCanvasId" width="160" height="160"></canvas>
+            <div class="ts-bill-receipt__qr-hint">@Model.QrHint</div>
+        </div>
+    }
+    <div class="ts-bill-receipt__thanks">Thank you!</div>
+</div>

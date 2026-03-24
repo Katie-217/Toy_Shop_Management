@@ -1,0 +1,1168 @@
+@model Children_s_toy_shop_management_software.Models.POS.PosPageVm
+@using System.Globalization
+
+@{
+    var subtotal = Model.Cart.Lines.Sum(x => x.Amount);
+    var lineCount = Model.Cart.Lines.Sum(x => x.Qty);
+    var taxRate = 0.1m;
+    var pointRate = 100m;
+    var billCashier = User?.Identity?.IsAuthenticated == true ? User.Identity!.Name : "—";
+    var billNow = DateTime.Now;
+    var billReceiptVm = new Children_s_toy_shop_management_software.Models.Shared.BillReceiptVm
+    {
+        RootId = "billPreviewReceipt",
+        DateText = billNow.ToString("dd/MM/yyyy"),
+        TimeText = billNow.ToString("HH:mm:ss"),
+        VoucherText = "—",
+        CashierText = billCashier ?? "—",
+        CustomerName = "—",
+        CustomerPhone = "—",
+        CustomerAddress = "—",
+        TotalText = $"{subtotal:N0} VND",
+        AmountWords = string.Empty,
+        CashPaidText = "0 ₫",
+        ChangeText = "0 ₫",
+        ShowCashInfo = true,
+        ShowVnPayInfo = true,
+        ShowQr = false,
+        VnPayInfoText = "Payment method: VNPay (QR)",
+        QrCanvasId = "billPreviewQrCanvas",
+        DateElementId = "billPreviewDate",
+        TimeElementId = "billPreviewTime",
+        VoucherElementId = "billPreviewVoucher",
+        CustomerNameElementId = "billPrevCustomerName",
+        CustomerPhoneElementId = "billPrevCustomerPhone",
+        CustomerAddressElementId = "billPrevCustomerAddress",
+        TotalElementId = "billTotal",
+        AmountWordsElementId = "billAmountWords",
+        CashInfoElementId = "billCashInfo",
+        VnPayInfoElementId = "billVnPayInfo",
+        CashElementId = "billCash",
+        ChangeElementId = "billChange",
+        Lines = Model.Cart.Lines.Select(line => new Children_s_toy_shop_management_software.Models.Shared.BillReceiptLineVm
+        {
+            ProductName = line.Name,
+            Quantity = line.Qty,
+            UnitPrice = line.Price,
+            LineTotal = line.Amount
+        }).ToList()
+    };
+}
+
+<div class="ts-pos-page">
+    <div class="ts-pos-body">
+        <div class="ts-pos-left-stack">
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="alert alert-danger mb-0">@Model.Error</div>
+        }
+
+        <div class="ts-card ts-pos-center ts-pos-catalog-shell">
+        <div class="ts-shell-toolbar ts-pos-catalog-toolbar">
+        <form method="post"
+              asp-action="PosScanOrSearch"
+              asp-controller="Portal"
+              class="mb-0"
+              id="posSearchForm"
+              data-spa-form="1">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="currentSearch" value="@Model.Search" />
+            <input type="hidden" name="tabId" value="@Model.CurrentTabId" />
+
+            <label class="ts-card__sub ts-pos-field-hint" style="display:block; margin-bottom:6px;">
+                <strong>Search</strong>
+            </label>
+            <div class="ts-shell-toolbar__row">
+                <div style="flex:1; min-width:0; position:relative;">
+                    <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.55; pointer-events:none;" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <input class="form-control"
+                           id="posSearchInput"
+                           name="value"
+                           value="@Model.Search"
+                           placeholder="Name (any part) or barcode…"
+                           style="padding-left:40px;"
+                           autocomplete="off"
+                           onfocus="this.select()" />
+                </div>
+                <button type="submit" class="btn btn-primary" >Search</button>
+                <button type="button" class="btn btn-outline-light ts-pos-scan-btn" id="openCameraScanBtn" title="Scan barcode" aria-label="Scan barcode">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M7 3H5a2 2 0 0 0-2 2v2M17 3h2a2 2 0 0 1 2 2v2M7 21H5a2 2 0 0 1-2-2v-2M17 21h2a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M8 8h2v2H8V8zm6 0h2v2h-2V8zM8 14h2v2H8v-2zm6 0h2v2h-2v-2z" fill="currentColor" opacity=".9"/>
+                    </svg>
+                </button>
+            </div>
+        </form>
+
+        <form id="posBarcodeForm" method="post" asp-action="PosScanOrSearch" asp-controller="Portal" style="display:none;" data-spa-form="1">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="currentSearch" value="@Model.Search" />
+            <input type="hidden" name="tabId" value="@Model.CurrentTabId" />
+            <input type="hidden" name="value" id="posBarcodeHiddenValue" />
+        </form>
+        </div>
+
+            <div class="ts-pos-linehead">
+                <div class="ts-pos-section-title" style="margin-bottom:0;">Catalog</div>
+            </div>
+
+            <div class="ts-pos-catalog-area">
+                @if (Model.Products.Count == 0)
+                {
+                    <div class="ts-placeholder" style="min-height:120px; border-style:solid;"></div>
+                }
+                else
+                {
+                    <div id="posCatalogFilterEmpty" class="ts-pos-catalog-filter-empty" style="display:none;" role="status">
+                        No products match your search (name is case-insensitive).
+                    </div>
+                    <div id="posCatalogGrid" class="ts-pos-catalog-grid">
+                        @foreach (var p in Model.Products)
+                        {
+                            var outOfStock = p.StockQuantity <= 0;
+                            <div class="ts-pos-catalog-card @(outOfStock ? "ts-pos-catalog-card--oos" : "")"
+                                 data-pos-name="@p.Name"
+                                 data-pos-click-add="@(outOfStock ? "0" : "1")"
+                                 style="position:relative; border-radius:16px; overflow:hidden; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.08);">
+                                <div style="position:absolute; top:10px; right:10px; z-index:2; padding:6px 8px; border-radius:999px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12); font-size:12px; color:rgba(255,255,255,.9);">
+                                    @p.StockQuantity
+                                </div>
+
+                                <div style="height:96px; background:rgba(255,255,255,.04); display:flex; align-items:center; justify-content:center;">
+                                    @if (!string.IsNullOrWhiteSpace(p.ImagePath))
+                                    {
+                                        var imgSrc = p.ImagePath!.StartsWith("/") ? p.ImagePath : ("/" + p.ImagePath);
+                                        <img src="@imgSrc" alt="@p.Name" style="max-width:100%; max-height:100%; object-fit:contain;" />
+                                    }
+                                    else
+                                    {
+                                        <div style="width:52px; height:52px; border-radius:14px; background:rgba(255,255,255,.06);"></div>
+                                    }
+                                </div>
+
+                                <div class="ts-pos-catalog-card__footer">
+                                    <div class="ts-pos-catalog-card__name">
+                                        @p.Name
+                                    </div>
+                                    <div class="ts-pos-catalog-card__price">
+                                        @p.Price.ToString("N0") ₫
+                                    </div>
+
+                                    @if (!outOfStock)
+                                    {
+                                        <form method="post"
+                                              asp-action="PosAdd"
+                                              asp-controller="Portal"
+                                              asp-route-search="@Model.Search"
+                                              asp-route-tabId="@Model.CurrentTabId"
+                                              class="ts-pos-catalog-add-form"
+                                              data-spa-form="1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="barcode" value="@p.Code" />
+                                            <input type="hidden" name="qty" value="1" />
+                                            <button type="submit" class="ts-pos-catalog-add-hidden" aria-hidden="true" tabindex="-1">Add</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <div style="height:31px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.75); font-weight:800; font-size:11px;">
+                                            Out of stock
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (outOfStock)
+                                {
+                                    <div style="position:absolute; inset:0; z-index:3; background:rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center;">
+                                        <div style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 10px; border-radius:14px; background:rgba(255,80,80,.18); border:1px solid rgba(255,80,80,.35);">
+                                            <div style="font-weight:900; font-size:11px; color:rgba(255,220,220,.95);">SOLD OUT</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        </div>
+
+      <div class="ts-pos-right-stack ts-shell-side" id="posOrderTabsHost" data-pos-tab-id="@Model.CurrentTabId">
+    <div class="ts-card ts-pos-tabs-card">
+        <div id="posOrderTabs" class="ts-pos-tabs" role="tablist"></div>
+        <a href="#" class="btn btn-outline-light btn-sm ts-pos-tabs-add" id="posAddOrderTabBtn">+</a>
+    </div>
+
+    <div class="ts-card ts-pos-right-panel d-flex flex-column" style="height: calc(100vh - 120px); padding: 0;">
+        
+        <div class="ts-pos-lineitems-container flex-grow-1 p-2" style="overflow-y: auto;">
+            <table class="table table-borderless align-middle mb-0 ts-pos-bill-table">
+                <colgroup>
+                    <col style="width:20%" />
+                    <col style="width:20%" />
+                    <col style="width:20%" />
+                    <col style="width:20%" />
+                    <col style="width:20%" />
+                </colgroup>
+                <thead class="sticky-top border-bottom border-secondary">
+                    <tr class="ts-pos-bill-head">
+                        <th class="text-center">Remove</th>
+                        <th class="text-center">Product</th>
+                        <th class="text-center">Price</th>
+                        <th class="text-center">Quantity</th>
+                        <th class="text-center">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in Model.Cart.Lines)
+                    {
+                        <tr class="border-bottom border-secondary-subtle">
+                            <td class="text-center">
+                                <form method="post" asp-action="PosRemove" asp-controller="Portal" asp-route-tabId="@Model.CurrentTabId" data-spa-form="1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="barcode" value="@line.Code" />
+                                    <button type="submit" class="btn text-danger p-0" style="font-size: 1.2rem;">&times;</button>
+                                </form>
+                            </td>
+                            <td class="small fw-bold">@line.Name</td>
+                            <td class="text-end small">@line.Price.ToString("N0")</td>
+                            <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <form method="post" asp-action="PosUpdate" asp-controller="Portal" asp-route-search="@Model.Search" asp-route-tabId="@Model.CurrentTabId" data-spa-form="1" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="barcode" value="@line.Code" />
+                                        <input type="hidden" name="qty" value="@(line.Qty - 1)" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary ts-pos-qty-btn">-</button>
+                                    </form>
+                                    <span class="px-2 text-dark rounded fw-bold ts-pos-qty-pill">@line.Qty</span>
+                                    <form method="post" asp-action="PosAdd" asp-controller="Portal" asp-route-search="@Model.Search" asp-route-tabId="@Model.CurrentTabId" data-spa-form="1" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="barcode" value="@line.Code" />
+                                        <input type="hidden" name="qty" value="1" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary ts-pos-qty-btn">+</button>
+                                    </form>
+                                </div>
+                            </td>
+                            <td class="text-end fw-bold text-primary">@line.Amount.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <form id="posCheckoutForm" method="post"
+              asp-action="PosCheckout"
+              asp-controller="Portal"
+              asp-route-search="@Model.Search"
+              asp-route-tabId="@Model.CurrentTabId"
+              data-spa-form="1">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="cash" id="cashInputHidden" value="0" />
+
+        <div class="ts-pos-footer-info">
+            <div class="ts-pos-footer-grid">
+                <div class="ts-pos-footer-left">
+                    <div class="ts-pos-mini-panel mb-2">
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" id="memberPhone" name="customerPhone" placeholder="Search customer by name or phone" autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary ts-pos-member-search-btn" id="memberLookupBtn" aria-label="Search customer">👥</button>
+                        </div>
+                        <div class="ts-pos-customer-line">
+                            <span>Customer name: <strong id="memberName">—</strong></span>
+                        </div>
+                        <div class="ts-pos-customer-line">
+                            <span>Loyalty points: <strong id="memberPointValue">0</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="ts-pos-mini-panel">
+                        <div class="ts-pos-note-labels">
+                            <span class="ts-pos-note-label">Notes</span>
+                        </div>
+                        <textarea class="form-control form-control-sm" rows="4" placeholder="Notes"></textarea>
+                    </div>
+                </div>
+
+                <div class="ts-pos-footer-right">
+                    <div id="cashBox" class="ts-pos-payment-tabs" role="group" aria-label="Payment method">
+                        <div class="ts-pos-pay-option">
+                            <input class="form-check-input" type="radio" name="paymentMethod" value="vnpay" id="paymentVnPay" />
+                            <label class="form-check-label" for="paymentVnPay">Bank transfer</label>
+                        </div>
+                        <div class="ts-pos-pay-option">
+                            <input class="form-check-input" type="radio" name="paymentMethod" value="cash" id="paymentCash" checked />
+                            <label class="form-check-label" for="paymentCash">Cash</label>
+                        </div>
+                    </div>
+                    <div class="ts-pos-summary-box">
+                        <div class="ts-pos-loyalty-row">
+                            <div class="form-check" style="margin:0;">
+                                <input class="form-check-input" type="checkbox" name="usePoints" value="true" id="memberCheckbox" />
+                                <label class="form-check-label" for="memberCheckbox" style="margin-left:6px;">
+                                    Use loyalty points
+                                </label>
+                            </div>
+                        </div>
+                        <div class="ts-pos-money-row">
+                            <span>Subtotal:</span>
+                            <span class="fw-bold" id="previewSubtotal" data-subtotal="@subtotal.ToString("G29", CultureInfo.InvariantCulture)">@subtotal.ToString("N0")</span>
+                        </div>
+                        <div class="ts-pos-money-row">
+                            <span>Tax:</span>
+                            <span id="previewTax">0</span>
+                        </div>
+                        <div class="ts-pos-money-row">
+                            <span>Discount:</span>
+                            <span id="previewDiscount">0</span>
+                        </div>
+                        <div classx ts-pos-money-row--grand">
+                            <span>Grand total:</span>
+                            <span id="previewTotal">@subtotal.ToString("N0")</span>
+                        </div>
+                        <div class="ts-pos-money-row mt-2" id="cashPaidRow">
+                            <span id="cashPaidLabel">Cash received:</span>
+                            <input type="text"
+                                   id="cashPaidInput"
+                                   class="form-control form-control-sm text-end fw-bold ts-pos-pay-input"
+                                   inputmode="numeric"
+                                   value="@subtotal.ToString("N0")" />
+                        </div>
+                        <div class="ts-pos-money-row" id="cashChangeRow">
+                            <span>Change:</span>
+                            <span id="previewChange">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3 ts-pos-footer-actions">
+                <button type="button" class="btn btn-danger py-2">Cancel bill</button>
+                <button id="payButton" type="button" class="btn btn-success py-2 fw-bold fs-5">Pay (F1)</button>
+            </div>
+        </div>
+        </form>
+    </div>
+</div>
+    </div>
+</div>
+
+<div id="billModalOverlay" class="ts-bill-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="billModalTitle">
+    <div class="ts-bill-modal__panel">
+        <button type="button" class="ts-bill-modal__close" id="closeBillModalBtn" aria-label="Close">&times;</button>
+        <partial name="_BillReceipt" model="billReceiptVm" />
+
+        <div class="ts-bill-modal__actions">
+            <button type="button" class="btn btn-primary" id="confirmPayBtn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div id="cameraScanModal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000; align-items:center; justify-content:center; padding:18px;">
+    <div class="ts-card" style="padding:16px; width:min(420px, 96vw); max-width:100%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="ts-card__title" style="margin:0;">Webcam barcode / QR</div>
+            <button type="button" class="btn btn-outline-light btn-sm" id="closeCameraScanBtn">Close</button>
+        </div>
+        <p class="ts-card__sub" style="margin-bottom:10px;">Allow camera access. Point at a barcode or QR code — the product will be added when recognized.</p>
+        <div id="barcodeReaderHost" style="min-height:200px; border-radius:12px; overflow:hidden; background:rgba(0,0,0,.25);"></div>
+        <div id="cameraScanError" class="text-danger small mt-2" style="display:none;"></div>
+    </div>
+</div>
+
+<div id="vnPayQrModal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10001; align-items:center; justify-content:center; padding:18px;">
+    <div class="ts-card" style="padding:18px; width:min(380px, 96vw); max-width:100%; text-align:center;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; text-align:left;">
+            <div>
+                <div class="ts-card__title" style="margin-bottom:4px;">VNPay</div>
+                <div class="ts-pos-orders-info__label" id="vnPayQrModalAmount">0 ₫</div>
+            </div>
+            <button type="button" class="btn btn-outline-light btn-sm" id="closeVnPayQrModal">Close</button>
+        </div>
+        <div style="display:flex; justify-content:center; margin-bottom:10px;">
+            <canvas id="vnPayCanvasModal" width="200" height="200"></canvas>
+        </div>
+        <div class="ts-pos-orders-info__label" style="margin-bottom:14px;">Scan QR to pay</div>
+        <div style="display:flex; gap:10px;">
+            <button type="button" class="btn btn-outline-light w-50" id="backFromVnPayQrBtn">Back</button>
+            <button type="button" class="btn btn-primary w-50" id="confirmVnPayQrBtn">Confirm &amp; Pay</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+    (function () {
+        const posOrderTabsHost = document.getElementById('posOrderTabsHost');
+        const posOrderTabs = document.getElementById('posOrderTabs');
+        const posAddOrderTabBtn = document.getElementById('posAddOrderTabBtn');
+        const POS_TABS_KEY = 'posOrderTabs_v1';
+        const POS_TAB_COUNTER_KEY = 'posOrderTabCounter_v1';
+
+        function sanitizeTabId(v) {
+            const s = String(v || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40);
+            return s || 'default';
+        }
+
+        function readTabsState() {
+            try {
+                const raw = sessionStorage.getItem(POS_TABS_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || !Array.isArray(parsed.tabs)) return null;
+                return parsed;
+            } catch {
+                return null;
+            }
+        }
+
+        function saveTabsState(state) {
+            try {
+                sessionStorage.setItem(POS_TABS_KEY, JSON.stringify(state));
+            } catch { /* ignore */ }
+        }
+
+        function parseOrderNum(label) {
+            const m = String(label || '').match(/(\d+)\s*$/);
+            if (!m) return 0;
+            const n = parseInt(m[1], 10);
+            return Number.isFinite(n) ? n : 0;
+        }
+
+        function getMaxOrderNum(tabs) {
+            let max = 0;
+            for (let i = 0; i < tabs.length; i++) {
+                max = Math.max(max, parseOrderNum(tabs[i].label));
+            }
+            return max;
+        }
+
+        function getNextOrderNum(tabs) {
+            let n = 1;
+            try {
+                const maxFromTabs = getMaxOrderNum(tabs);
+                const stored = parseInt(sessionStorage.getItem(POS_TAB_COUNTER_KEY) || '1', 10);
+                const fromStore = Number.isFinite(stored) && stored > 0 ? stored : 1;
+                n = Math.max(fromStore, maxFromTabs + 1);
+                sessionStorage.setItem(POS_TAB_COUNTER_KEY, String(n + 1));
+            } catch {
+                n = getMaxOrderNum(tabs) + 1;
+            }
+            return n;
+        }
+
+        function nextTabLabel(tabs) {
+            return 'Bill ' + getNextOrderNum(tabs || []);
+        }
+
+        function createTab(tabs) {
+            const rnd = Math.random().toString(36).slice(2, 8);
+            const id = sanitizeTabId('t' + Date.now().toString(36) + rnd);
+            return { id: id, label: nextTabLabel(tabs || []) };
+        }
+
+        function normalizeTabsState(activeId) {
+            let currentId = sanitizeTabId(activeId || (posOrderTabsHost ? posOrderTabsHost.getAttribute('data-pos-tab-id') : 'default'));
+            const urlObj = new URL(window.location.href);
+            const hasTabInUrl = !!urlObj.searchParams.get('tabId');
+
+            // Opening plain /Portal/Pos means starting a fresh working order.
+            if (!hasTabInUrl) {
+                const fresh = { activeId: currentId, tabs: [{ id: currentId, label: 'Bill 1' }] };
+                saveTabsState(fresh);
+                try { sessionStorage.setItem(POS_TAB_COUNTER_KEY, '2'); } catch { /* ignore */ }
+                return fresh;
+            }
+
+            const stored = readTabsState();
+            let tabs = (stored && Array.isArray(stored.tabs) ? stored.tabs : []).filter(function (x) { return x && x.id; });
+            tabs = tabs.map(function (x) {
+                return { id: sanitizeTabId(x.id), label: String(x.label || 'Bill').trim() || 'Bill' };
+            });
+            const dedup = [];
+            const seen = new Set();
+            for (let i = 0; i < tabs.length; i++) {
+                if (seen.has(tabs[i].id)) continue;
+                seen.add(tabs[i].id);
+                dedup.push(tabs[i]);
+            }
+            tabs = dedup;
+            if (currentId === 'default' && stored && stored.activeId) {
+                const storedActiveId = sanitizeTabId(stored.activeId);
+                if (tabs.some(function (t) { return t.id === storedActiveId; })) {
+                    currentId = storedActiveId;
+                }
+            }
+            if (tabs.length === 0) tabs = [{ id: currentId, label: nextTabLabel([]) }];
+            if (!tabs.some(function (t) { return t.id === currentId; })) {
+                tabs.push({ id: currentId, label: nextTabLabel(tabs) });
+            }
+            const state = { activeId: currentId, tabs: tabs };
+            saveTabsState(state);
+            return state;
+        }
+
+        function buildPosUrl(tabId) {
+            if (!posOrderTabsHost) return '';
+            const baseUrl = posOrderTabsHost.getAttribute('data-pos-url') || '/Portal/Pos';
+            const s = (posOrderTabsHost.getAttribute('data-pos-search') || '').trim();
+            const url = new URL(baseUrl, window.location.origin);
+            if (s) url.searchParams.set('search', s);
+            url.searchParams.set('tabId', sanitizeTabId(tabId));
+            return url.toString();
+        }
+
+        function renderOrderTabs(state) {
+            if (!posOrderTabs) return;
+            posOrderTabs.innerHTML = '';
+            for (let i = 0; i < state.tabs.length; i++) {
+                const t = state.tabs[i];
+                const a = document.createElement('a');
+                a.href = buildPosUrl(t.id);
+                a.className = 'ts-pos-tab' + (t.id === state.activeId ? ' is-active' : '');
+                a.setAttribute('role', 'tab');
+                a.setAttribute('aria-selected', t.id === state.activeId ? 'true' : 'false');
+                a.setAttribute('data-spa-get', '1');
+                a.textContent = t.label;
+                a.addEventListener('click', function () {
+                    if (t.id === state.activeId) return;
+                    const next = normalizeTabsState(t.id);
+                    next.activeId = t.id;
+                    saveTabsState(next);
+                });
+                posOrderTabs.appendChild(a);
+            }
+        }
+
+        function initOrderTabs() {
+            if (!posOrderTabsHost || !posOrderTabs || !posAddOrderTabBtn) return;
+            const state = normalizeTabsState(posOrderTabsHost.getAttribute('data-pos-tab-id'));
+            renderOrderTabs(state);
+            posAddOrderTabBtn.addEventListener('click', function () {
+                const nextState = normalizeTabsState(state.activeId);
+                const newTab = createTab(nextState.tabs);
+                nextState.tabs.push(newTab);
+                nextState.activeId = newTab.id;
+                saveTabsState(nextState);
+                posAddOrderTabBtn.setAttribute('href', buildPosUrl(newTab.id));
+            });
+        }
+        initOrderTabs();
+
+        const subtotalEl = document.getElementById('previewSubtotal');
+        function parseInvariantDecimal(s) {
+            if (s == null || s === '') return 0;
+            var t = String(s).trim().replace(/\s/g, '').replace(',', '.');
+            var n = parseFloat(t);
+            return Number.isFinite(n) ? n : 0;
+        }
+        const subtotal = parseInvariantDecimal(subtotalEl?.dataset?.subtotal);
+
+        const pointRate = @pointRate.ToString(CultureInfo.InvariantCulture);
+        const taxRate = @taxRate.ToString(CultureInfo.InvariantCulture);
+
+        const memberCheckbox = document.getElementById('memberCheckbox');
+        const memberPhone = document.getElementById('memberPhone');
+        const memberLookupBtn = document.getElementById('memberLookupBtn');
+        const memberName = document.getElementById('memberName');
+        const memberPointValue = document.getElementById('memberPointValue');
+        const paymentCash = document.getElementById('paymentCash');
+        const paymentVnPay = document.getElementById('paymentVnPay');
+        const cashBox = document.getElementById('cashBox');
+        const cashPaidInput = document.getElementById('cashPaidInput');
+        const cashPaidRow = document.getElementById('cashPaidRow');
+        const cashChangeRow = document.getElementById('cashChangeRow');
+        const vnPayQrModal = document.getElementById('vnPayQrModal');
+        const vnPayCanvasModal = document.getElementById('vnPayCanvasModal');
+        const vnPayQrModalAmount = document.getElementById('vnPayQrModalAmount');
+
+        const discountEl = document.getElementById('previewDiscount');
+        const totalEl = document.getElementById('previewTotal');
+        const taxEl = document.getElementById('previewTax');
+        const previewChangeEl = document.getElementById('previewChange');
+
+        const billDiscount = document.getElementById('billDiscount');
+        const billTotal = document.getElementById('billTotal');
+        const billTax = document.getElementById('billTax');
+        const billCashInfo = document.getElementById('billCashInfo');
+        const billCash = document.getElementById('billCash');
+        const billChange = document.getElementById('billChange');
+        const billVnPayInfo = document.getElementById('billVnPayInfo');
+        const payButton = document.getElementById('payButton');
+        const customerTypeGuest = document.getElementById('customerTypeGuest');
+        const customerTypeMember = document.getElementById('customerTypeMember');
+        const posMemberFields = document.getElementById('posMemberFields');
+        const posLoyaltyRow = document.getElementById('posLoyaltyRow');
+
+        function isMemberCustomerSelected() {
+            // Footer POS mode: always lookup member info by phone input.
+            return true;
+        }
+
+        /** Survives SPA fragment reload (Add to cart, etc.) */
+        var currentPosTabId = sanitizeTabId((posOrderTabsHost && posOrderTabsHost.getAttribute('data-pos-tab-id')) || 'default');
+        var POS_SS_TYPE = 'posCustomerType_' + currentPosTabId;
+        var POS_SS_PHONE = 'posMemberPhone_' + currentPosTabId;
+
+        function posPersistCustomerUi() {
+            try {
+                var isMember = isMemberCustomerSelected();
+                sessionStorage.setItem(POS_SS_TYPE, isMember ? 'member' : 'guest');
+                if (isMember && memberPhone) {
+                    var p = (memberPhone.value || '').trim();
+                    if (p.length > 0) sessionStorage.setItem(POS_SS_PHONE, p);
+                    else sessionStorage.removeItem(POS_SS_PHONE);
+                } else {
+                    sessionStorage.removeItem(POS_SS_PHONE);
+                }
+            } catch (e) { /* private mode / blocked */ }
+        }
+
+        function posRestoreCustomerUi() {
+            try {
+                var t = sessionStorage.getItem(POS_SS_TYPE);
+                if (t === 'member' && customerTypeMember && customerTypeGuest) {
+                    customerTypeMember.checked = true;
+                    customerTypeGuest.checked = false;
+                } else if (t === 'guest' && customerTypeMember && customerTypeGuest) {
+                    customerTypeGuest.checked = true;
+                    customerTypeMember.checked = false;
+                }
+                var phone = sessionStorage.getItem(POS_SS_PHONE);
+                if (phone && memberPhone) memberPhone.value = phone;
+            } catch (e) { }
+        }
+
+        let memberPoints = 0;
+
+        const posSearchInput = document.getElementById('posSearchInput');
+        const posCatalogGrid = document.getElementById('posCatalogGrid');
+        const posCatalogFilterEmpty = document.getElementById('posCatalogFilterEmpty');
+        const posSearchFormEl = document.getElementById('posSearchForm');
+        function normPosFilter(s) {
+            if (s == null || s === '') return '';
+            try {
+                return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            } catch (e) {
+                return String(s).toLowerCase();
+            }
+        }
+        /** Normalize whitespace for case-insensitive name matching. */
+        function normSearchName(s) {
+            return normPosFilter(s).replace(/\s+/g, ' ').trim();
+        }
+        /** First character of each word (normalized), concatenated — e.g. "Toy Red Car" → "trc" */
+        function wordInitialsNorm(name) {
+            var parts = String(name || '').trim().split(/\s+/).filter(function (w) { return w.length > 0; });
+            var out = '';
+            for (var i = 0; i < parts.length; i++) {
+                var nw = normPosFilter(parts[i]);
+                if (nw.length > 0) out += nw.charAt(0);
+            }
+            return out;
+        }
+        function applyPosCatalogFilter() {
+            if (!posCatalogGrid) return;
+            const q = normSearchName(posSearchInput && posSearchInput.value ? posSearchInput.value : '');
+            const qCompact = q.replace(/\s/g, '');
+            const cards = posCatalogGrid.querySelectorAll('.ts-pos-catalog-card');
+            let visible = 0;
+            for (var i = 0; i < cards.length; i++) {
+                const el = cards[i];
+                const rawName = el.getAttribute('data-pos-name') || '';
+                const nameNorm = normSearchName(rawName);
+                const initials = wordInitialsNorm(rawName);
+                /** Match by contains (case-insensitive) or by acronym (e.g. tp -> Toy Product). */
+                const kwOk = !q ||
+                    nameNorm.indexOf(q) !== -1 ||
+                    (qCompact.length > 0 && initials.indexOf(qCompact) === 0);
+                const show = kwOk;
+                el.style.display = show ? '' : 'none';
+                if (show) visible++;
+            }
+            if (posCatalogFilterEmpty) {
+                posCatalogFilterEmpty.style.display = (cards.length > 0 && visible === 0) ? 'block' : 'none';
+            }
+        }
+        if (posCatalogGrid) {
+            posCatalogGrid.addEventListener('click', function (e) {
+                const interactive = e.target.closest('button, input, a, form');
+                if (interactive) return;
+                const card = e.target.closest('.ts-pos-catalog-card[data-pos-click-add="1"]');
+                if (!card) return;
+                const addForm = card.querySelector('.ts-pos-catalog-add-form');
+                if (!addForm) return;
+                if (typeof addForm.requestSubmit === 'function') addForm.requestSubmit();
+                else addForm.submit();
+            });
+        }
+        if (posSearchInput && posCatalogGrid) {
+            posSearchInput.addEventListener('input', applyPosCatalogFilter);
+            posSearchInput.addEventListener('search', applyPosCatalogFilter);
+            /* IME (e.g. Vietnamese): filter after composition ends */
+            posSearchInput.addEventListener('compositionend', applyPosCatalogFilter);
+            applyPosCatalogFilter();
+        }
+        if (posSearchFormEl && posSearchInput) {
+            posSearchFormEl.addEventListener('submit', function (e) {
+                const v = (posSearchInput.value || '').trim();
+                if (!v) return;
+                const digits = v.replace(/\D/g, '');
+                const looksLikeBarcode = /^[\d\s\-\.]+$/.test(v) && digits.length >= 4;
+                if (!looksLikeBarcode) {
+                    e.preventDefault();
+                    applyPosCatalogFilter();
+                }
+            });
+        }
+
+        function money(n) {
+            return Math.max(0, n).toLocaleString('en-US') + ' ₫';
+        }
+        function parseMoneyInput(s) {
+            const d = String(s || '').replace(/[^\d]/g, '');
+            if (!d) return 0;
+            const n = parseInt(d, 10);
+            return Number.isFinite(n) ? n : 0;
+        }
+
+        function getGrandTotal() {
+            const tax = subtotal * taxRate;
+            const memberFlow = isMemberCustomerSelected();
+            const usePoints = memberFlow && (memberCheckbox?.checked ?? false);
+            const discount = (usePoints && memberPoints > 0)
+                ? Math.min(memberPoints * pointRate, subtotal + tax)
+                : 0;
+            return subtotal + tax - discount;
+        }
+
+        function recalc() {
+            const tax = subtotal * taxRate;
+            if (taxEl) taxEl.textContent = money(tax).replace(' ₫', '') + ' ₫';
+            if (billTax) billTax.textContent = money(tax).replace(' ₫', '') + ' ₫';
+
+            const memberFlow = isMemberCustomerSelected();
+            const usePoints = memberFlow && (memberCheckbox?.checked ?? false);
+            const discount = (usePoints && memberPoints > 0)
+                ? Math.min(memberPoints * pointRate, subtotal + tax)
+                : 0;
+
+            const total = getGrandTotal();
+
+            if (discountEl) discountEl.textContent = money(discount).replace(' ₫', '') + ' ₫';
+            if (totalEl) totalEl.textContent = money(total).replace(' ₫', '') + ' ₫';
+
+            if (billDiscount) billDiscount.textContent = money(discount).replace(' ₫', '') + ' ₫';
+            if (billTotal) billTotal.textContent = money(total).replace(' ₫', '') + ' VND';
+
+            const pm = (paymentVnPay?.checked ?? false) ? 'vnpay' : 'cash';
+
+            if (cashBox) cashBox.style.display = 'block';
+            if (billCashInfo) billCashInfo.style.display = pm === 'cash' ? 'block' : 'none';
+            if (billVnPayInfo) billVnPayInfo.style.display = pm === 'vnpay' ? 'block' : 'none';
+
+            const cashHidden = document.getElementById('cashInputHidden');
+
+            if (pm === 'cash') {
+                const cashPaid = Math.max(0, parseMoneyInput(cashPaidInput?.value || '0'));
+                const change = Math.max(0, cashPaid - Math.round(total));
+                if (cashHidden) cashHidden.value = String(cashPaid);
+                if (billCash) billCash.textContent = money(cashPaid).replace(' ₫', '') + ' ₫';
+                if (billChange) billChange.textContent = money(change).replace(' ₫', '') + ' ₫';
+                if (previewChangeEl) previewChangeEl.textContent = change.toLocaleString('en-US');
+                if (cashPaidRow) cashPaidRow.style.display = '';
+                if (cashChangeRow) cashChangeRow.style.display = '';
+                if (payButton) payButton.disabled = total <= 0;
+            } else {
+                if (cashHidden) cashHidden.value = '0';
+                if (billCash) billCash.textContent = money(0).replace(' ₫', '') + ' ₫';
+                if (billChange) billChange.textContent = money(0).replace(' ₫', '') + ' ₫';
+                if (previewChangeEl) previewChangeEl.textContent = '0';
+                if (cashPaidRow) cashPaidRow.style.display = 'none';
+                if (cashChangeRow) cashChangeRow.style.display = 'none';
+                if (payButton) payButton.disabled = total <= 0;
+            }
+        }
+
+        function drawVnPayQrInModal() {
+            const total = getGrandTotal();
+            if (vnPayQrModalAmount) vnPayQrModalAmount.textContent = money(total);
+            try {
+                if (vnPayCanvasModal && window.QRCode) {
+                    const qrValue = `VNPAY|PREVIEW|AMOUNT|${total}`;
+                    window.QRCode.toCanvas(vnPayCanvasModal, qrValue, { errorCorrectionLevel: 'M' });
+                }
+            } catch { }
+        }
+
+        async function lookupMember() {
+            if (!isMemberCustomerSelected()) return;
+            const phone = (memberPhone?.value ?? '').trim();
+            if (phone.length < 3) return;
+
+            try {
+                const url = `/Portal/PosMemberLookup?phone=${encodeURIComponent(phone)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!data.found) {
+                    memberPoints = 0;
+                    if (memberName) memberName.textContent = 'No member found for this phone or card ID.';
+                    if (memberPointValue) memberPointValue.textContent = '0';
+                } else {
+                    memberPoints = Number(data.points ?? 0);
+                    if (memberName) memberName.textContent = data.fullName ?? '—';
+                    const pointsText = Number.isFinite(memberPoints) ? memberPoints.toLocaleString('en-US') : '0';
+                    if (memberPointValue) memberPointValue.textContent = pointsText;
+                }
+            } catch {
+                memberPoints = 0;
+                if (memberName) memberName.textContent = 'Lookup failed — try again.';
+                if (memberPointValue) memberPointValue.textContent = '0';
+            } finally {
+                recalc();
+                posPersistCustomerUi();
+            }
+        }
+
+        if (memberCheckbox) {
+            memberCheckbox.addEventListener('change', function () {
+                if (memberPhone && (memberPhone.value ?? '').trim().length >= 3) {
+                    lookupMember();
+                }
+                recalc();
+            });
+        }
+
+        if (memberPhone) {
+            memberPhone.addEventListener('input', function () {
+                if (isMemberCustomerSelected()) posPersistCustomerUi();
+            });
+            memberPhone.addEventListener('blur', function () {
+                if (isMemberCustomerSelected()) lookupMember();
+            });
+            memberPhone.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (isMemberCustomerSelected()) lookupMember();
+                }
+            });
+        }
+        if (memberLookupBtn) {
+            memberLookupBtn.addEventListener('click', function () {
+                lookupMember();
+            });
+        }
+
+        function syncCustomerType() {
+            const isMember = isMemberCustomerSelected();
+            if (posMemberFields) posMemberFields.hidden = !isMember;
+            if (posLoyaltyRow) posLoyaltyRow.hidden = !isMember;
+            if (memberPhone) {
+                memberPhone.disabled = !isMember;
+                if (!isMember) memberPhone.value = '';
+            }
+            if (!isMember) {
+                memberPoints = 0;
+                if (memberName) memberName.textContent = '—';
+                if (memberPointValue) memberPointValue.textContent = '0';
+                if (memberCheckbox) memberCheckbox.checked = false;
+            }
+            recalc();
+            posPersistCustomerUi();
+        }
+        posRestoreCustomerUi();
+        if (customerTypeGuest) customerTypeGuest.addEventListener('change', syncCustomerType);
+        if (customerTypeMember) customerTypeMember.addEventListener('change', syncCustomerType);
+        syncCustomerType();
+        if (isMemberCustomerSelected() && memberPhone && (memberPhone.value || '').trim().length >= 3) {
+            lookupMember();
+        }
+
+        if (paymentCash) paymentCash.addEventListener('change', recalc);
+        if (paymentVnPay) paymentVnPay.addEventListener('change', recalc);
+        if (cashPaidInput) {
+            cashPaidInput.addEventListener('input', function () {
+                const n = parseMoneyInput(cashPaidInput.value);
+                cashPaidInput.value = n > 0 ? n.toLocaleString('en-US') : '';
+                recalc();
+            });
+        }
+
+        const billModalOverlay = document.getElementById('billModalOverlay');
+        const closeBillModalBtn = document.getElementById('closeBillModalBtn');
+        const confirmPayBtn = document.getElementById('confirmPayBtn');
+        const posCheckoutForm = document.getElementById('posCheckoutForm');
+        const closeVnPayQrModalBtn = document.getElementById('closeVnPayQrModal');
+        const backFromVnPayQrBtn = document.getElementById('backFromVnPayQrBtn');
+        const confirmVnPayQrBtn = document.getElementById('confirmVnPayQrBtn');
+
+        function hideVnPayQrModal() {
+            if (vnPayQrModal) vnPayQrModal.style.display = 'none';
+        }
+
+        function submitCheckoutForm() {
+            if (!posCheckoutForm) return;
+            if (typeof posCheckoutForm.requestSubmit === 'function') {
+                posCheckoutForm.requestSubmit();
+            } else {
+                posCheckoutForm.submit();
+            }
+        }
+
+        function fillBillPreviewModal() {
+            const now = new Date();
+            const dEl = document.getElementById('billPreviewDate');
+            const tEl = document.getElementById('billPreviewTime');
+            const vEl = document.getElementById('billPreviewVoucher');
+            if (dEl) dEl.textContent = now.toLocaleDateString('en-US');
+            if (tEl) tEl.textContent = now.toLocaleTimeString('en-US', { hour12: false });
+            if (vEl) vEl.textContent = 'PREVIEW';
+            const mn = document.getElementById('memberName');
+            const mp = document.getElementById('memberPhone');
+            const elN = document.getElementById('billPrevCustomerName');
+            const elP = document.getElementById('billPrevCustomerPhone');
+            const elA = document.getElementById('billPrevCustomerAddress');
+            if (elN) {
+                if (!isMemberCustomerSelected()) {
+                    elN.textContent = '—';
+                } else {
+                    const t = (mn && mn.textContent) ? mn.textContent.trim() : '';
+                    const bad = !t || t === '—' || t.indexOf('No member found') === 0 || t.indexOf('Lookup failed') === 0;
+                    elN.textContent = bad ? '—' : t;
+                }
+            }
+            if (elP) {
+                if (!isMemberCustomerSelected()) {
+                    elP.textContent = '—';
+                } else {
+                    const p = (mp && mp.value) ? mp.value.trim() : '';
+                    elP.textContent = p || '—';
+                }
+            }
+            if (elA) elA.textContent = '—';
+            const aw = document.getElementById('billAmountWords');
+            if (aw) {
+                const tot = Math.round(getGrandTotal());
+                aw.textContent = tot > 0 ? '( ' + tot.toLocaleString('en-US') + ' VND )' : '';
+            }
+        }
+
+        function showBillPreviewModal() {
+            if (!billModalOverlay) return;
+            fillBillPreviewModal();
+
+            billModalOverlay.style.display = 'flex';
+            try { confirmPayBtn?.focus(); } catch { /* ignore */ }
+        }
+
+        if (payButton) {
+            payButton.addEventListener('click', function () {
+                recalc();
+                if (getGrandTotal() <= 0) return;
+                const pm = (paymentVnPay?.checked ?? false) ? 'vnpay' : 'cash';
+                if (pm === 'vnpay') {
+                    drawVnPayQrInModal();
+                    if (vnPayQrModal) vnPayQrModal.style.display = 'flex';
+                } else if (billModalOverlay) {
+                    showBillPreviewModal();
+                }
+            });
+        }
+
+        const hideBillModal = function () {
+            if (billModalOverlay) billModalOverlay.style.display = 'none';
+        };
+
+        if (closeBillModalBtn) closeBillModalBtn.addEventListener('click', hideBillModal);
+        if (billModalOverlay) {
+            billModalOverlay.addEventListener('click', function (e) {
+                if (e.target === billModalOverlay) hideBillModal();
+            });
+        }
+
+        function isBillModalVisible() {
+            if (!billModalOverlay) return false;
+            return window.getComputedStyle(billModalOverlay).display !== 'none';
+        }
+
+        function confirmBillAndPay() {
+            if (!confirmPayBtn || !posCheckoutForm) return;
+            hideBillModal();
+            submitCheckoutForm();
+        }
+
+        if (confirmPayBtn && posCheckoutForm) {
+            confirmPayBtn.addEventListener('click', function () {
+                confirmBillAndPay();
+            });
+        }
+
+        if (closeVnPayQrModalBtn) closeVnPayQrModalBtn.addEventListener('click', hideVnPayQrModal);
+        if (backFromVnPayQrBtn) backFromVnPayQrBtn.addEventListener('click', hideVnPayQrModal);
+        if (confirmVnPayQrBtn) {
+            confirmVnPayQrBtn.addEventListener('click', function () {
+                hideVnPayQrModal();
+                showBillPreviewModal();
+            });
+        }
+        if (vnPayQrModal) {
+            vnPayQrModal.addEventListener('click', function (e) {
+                if (e.target === vnPayQrModal) hideVnPayQrModal();
+            });
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && isBillModalVisible()) {
+                e.preventDefault();
+                e.stopPropagation();
+                confirmBillAndPay();
+                return;
+            }
+            if (e.key === 'F3') {
+                e.preventDefault();
+                posSearchInput?.focus();
+                posSearchInput?.select();
+            }
+            if (e.key === 'F12') {
+                e.preventDefault();
+                if (isBillModalVisible()) return;
+                payButton?.click();
+            }
+        }, true);
+
+       /* Webcam barcode */
+        const cameraModal = document.getElementById('cameraScanModal');
+        const openCameraBtn = document.getElementById('openCameraScanBtn');
+        const closeCameraBtn = document.getElementById('closeCameraScanBtn');
+        const barcodeHost = document.getElementById('barcodeReaderHost');
+        const cameraErr = document.getElementById('cameraScanError');
+        const posBarcodeForm = document.getElementById('posBarcodeForm');
+        const posBarcodeHiddenValue = document.getElementById('posBarcodeHiddenValue');
+
+        let html5QrCode = null;
+        let scanLocked = false;
+
+        function showCamError(msg) {
+            if (!cameraErr) return;
+            cameraErr.style.display = 'block';
+            cameraErr.textContent = msg || '';
+        }
+        function hideCamError() {
+            if (!cameraErr) return;
+            cameraErr.style.display = 'none';
+            cameraErr.textContent = '';
+        }
+
+        async function stopScanner() {
+            scanLocked = false;
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                } catch { /* ignore */ }
+                try {
+                    if (typeof html5QrCode.clear === 'function') {
+                        await html5QrCode.clear();
+                    }
+                } catch { /* ignore */ }
+                html5QrCode = null;
+            }
+            if (barcodeHost) barcodeHost.innerHTML = '';
+        }
+
+        function normalizeScanCode(t) {
+            if (t == null || t === undefined) return '';
+            return String(t)
+                .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+                .replace(/\r\n?/g, '')
+                .trim();
+        }
+
+        async function onScanSuccess(decodedText) {
+            if (scanLocked) return;
+            const text = normalizeScanCode(decodedText);
+            if (!text) return;
+            scanLocked = true;
+            await stopScanner();
+            if (cameraModal) cameraModal.style.display = 'none';
+            if (posBarcodeHiddenValue) posBarcodeHiddenValue.value = text;
+            if (posBarcodeForm) {
+                if (typeof posBarcodeForm.requestSubmit === 'function') {
+                    posBarcodeForm.requestSubmit();
+                } else {
+                    posBarcodeForm.submit();
+                }
+            }
+        }
+
+        async function startScanner() {
+            hideCamError();
+            if (!barcodeHost || typeof Html5Qrcode === 'undefined') {
+                showCamError('Scanner library failed to load.');
+                return;
+            }
+            await stopScanner();
+            barcodeHost.innerHTML = '';
+            html5QrCode = new Html5Qrcode('barcodeReaderHost');
+            const cfg = { fps: 10, qrbox: { width: 280, height: 160 } };
+
+            try {
+                const cams = await Html5Qrcode.getCameras();
+                if (cams && cams.length > 0) {
+                    await html5QrCode.start(
+                        cams[0].id,
+                        cfg,
+                        (text) => { onScanSuccess(text); },
+                        () => { }
+                    );
+                } else {
+                    await html5QrCode.start(
+                        { facingMode: 'environment' },
+                        cfg,
+                        (text) => { onScanSuccess(text); },
+                        () => { }
+                    );
+                }
+            } catch (e1) {
+                try {
+                    await html5QrCode.start(
+                        { facingMode: 'user' },
+                        cfg,
+                        (text) => { onScanSuccess(text); },
+                        () => { }
+                    );
+                } catch (e2) {
+                    showCamError('Could not start camera. Allow permission or use USB scanner / manual entry.');
+                    await stopScanner();
+                }
+            }
+        }
+
+        function openCameraModal() {
+            if (cameraModal) {
+                cameraModal.style.display = 'flex';
+                startScanner();
+            }
+        }
+
+        async function closeCameraModal() {
+            await stopScanner();
+            if (cameraModal) cameraModal.style.display = 'none';
+            hideCamError();
+        }
+
+        if (openCameraBtn) openCameraBtn.addEventListener('click', openCameraModal);
+        if (closeCameraBtn) closeCameraBtn.addEventListener('click', function () { closeCameraModal(); });
+        if (cameraModal) {
+            cameraModal.addEventListener('click', function (e) {
+                if (e.target === cameraModal) closeCameraModal();
+            });
+        }
+
+        recalc();
+    })();
+</script>
