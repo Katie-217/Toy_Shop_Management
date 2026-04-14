@@ -1,0 +1,101 @@
+/* Customers (tab) */
+@import url("../../toyshop-dark.css");
+
+/* customers layout */
+.ts-customers-layout{
+  display: grid;
+  grid-template-columns: 1fr 550px;
+  gap: 14px;
+  min-height: 0;
+  height: 100%;
+  align-items: stretch;
+}
+
+/* hide scrollbars unconditionally on the right area */
+.ts-shell-side::-webkit-scrollbar,
+.ts-no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.ts-shell-side, .ts-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ts-customers-layout > .ts-shell-main,
+.ts-customers-layout > .ts-shell-side{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  height:100%;
+}
+.ts-customers-layout > .ts-shell-main{ overflow:hidden; }
+.ts-customers-layout > .ts-shell-side{
+  position: static;
+  top: auto;
+  align-self: stretch;
+  overflow:auto;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.ts-customers-layout > .ts-shell-side::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
+
+/* customers table */
+.ts-customers-table-scroll{
+  flex:1 1 auto;
+  min-height:0;
+  max-height:none;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.ts-customers-table-scroll::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
+.ts-customers-table{
+  --bs-table-bg: transparent;
+  --bs-table-color: rgba(255,255,255,.9);
+  table-layout: fixed;
+}
+.ts-customers-table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #101a38 !important;
+  color:#fff;
+  border-color: rgba(255,255,255,.12);
+  padding-left:12px;
+  padding-right:12px;
+}
+.ts-customers-table tbody td{
+  background: transparent !important;
+  color:#fff;
+  border-color: rgba(255,255,255,.08);
+  padding-left:12px;
+  padding-right:12px;
+}
+.ts-customers-table tbody tr{ background: transparent !important; }
+
+/* selected row highlight */
+.ts-customers-table__row--selected{
+  background: transparent !important;
+  box-shadow: inset 3px 0 0 rgba(193, 113, 208, 0.98);
+}
+.ts-customers-table tbody tr.ts-customers-table__row--selected > td{
+  background: rgba(192,132,252,.15) !important;
+}
+.ts-customers-table__row--selected td{ font-weight:400; }
+
+/* customers page height */
+.ts-shell-page--customers{
+  height: calc(100vh - 150px);
+  min-height: 0;
+  overflow: hidden;
+}

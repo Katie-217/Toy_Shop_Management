@@ -46,11 +46,45 @@ namespace Children_s_toy_shop_management_software.Controllers
             _env = env;
         }
 
-        public async Task<IActionResult> Dashboard()
+        public async Task<IActionResult> Dashboard(string? detailBy, string? metric)
         {
             ViewData["Title"] = "Dashboard";
-            var vm = await _dashboardRepo.GetKpisAsync();
+            var normalizedDetail = NormalizeDashboardDetail(detailBy);
+            var normalizedMetric = NormalizeDashboardMetric(metric);
+
+            var vm = await _dashboardRepo.GetKpisAsync(normalizedDetail);
+            vm.ActiveDetailBy = normalizedDetail;
+            vm.ActiveMetric = normalizedMetric;
             return View("Dashboard", vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DashboardData(string? detailBy)
+        {
+            var vm = await _dashboardRepo.GetKpisAsync(detailBy);
+            return Json(vm);
+        }
+
+        private static string NormalizeDashboardDetail(string? detailBy)
+        {
+            var d = string.IsNullOrWhiteSpace(detailBy) ? "week" : detailBy.Trim().ToLowerInvariant();
+            return d is "week" or "month" or "quarter" or "year" ? d : "week";
+        }
+
+        private static string NormalizeDashboardMetric(string? metric)
+        {
+            var m = string.IsNullOrWhiteSpace(metric) ? "sales" : metric.Trim().ToLowerInvariant();
+            return m switch
+            {
+                "sales" => "sales",
+                "orders" => "orders",
+                "profit" => "profit",
+                "productssold" => "productsSold",
+                "productsold" => "productsSold",
+                "products_sold" => "productsSold",
+                "products-sold" => "productsSold",
+                _ => "sales"
+            };
         }
 
         [HttpGet]
@@ -121,48 +155,55 @@ namespace Children_s_toy_shop_management_software.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PosAdd([FromForm] string barcode, [FromForm] int qty, [FromQuery] string? search, [FromQuery] string? tabId)
         {
-            var currentTabId = NormalizePosTabId(tabId);
-            var cart = GetCartFromSession(currentTabId);
-            var product = await _posRepo.FindProductByScanCodeAsync(barcode);
-            if (product == null)
+            try
             {
-                if (IsSpaFragmentRequest())
+                var currentTabId = NormalizePosTabId(tabId);
+                var cart = GetCartFromSession(currentTabId);
+                var product = await _posRepo.FindProductByScanCodeAsync(barcode);
+                if (product == null)
                 {
-                    ViewData["Title"] = "POS (Point of Sale)";
-                    var vm = await BuildPosVmAsync(search, currentTabId);
-                    vm.Error = "No product matched this code. Check the barcode or search by name.";
-                    return View("Pos", vm);
+                    if (IsSpaFragmentRequest())
+                    {
+                        ViewData["Title"] = "POS (Point of Sale)";
+                        var vm = await BuildPosVmAsync(search, currentTabId);
+                        vm.Error = "No product matched this code. Check the barcode or search by name.";
+                        return View("Pos", vm);
+                    }
+
+                    TempData["PosError"] = "No product matched this code. Check the barcode or search by name.";
+                    return RedirectToAction(nameof(Pos), new { search, tabId = currentTabId });
                 }
 
-                TempData["PosError"] = "No product matched this code. Check the barcode or search by name.";
+                var addQty = qty <= 0 ? 1 : qty;
+                var line = cart.Lines.FirstOrDefault(x => string.Equals(x.Code, product.Code, StringComparison.OrdinalIgnoreCase));
+                if (line == null)
+                {
+                    cart.Lines.Add(new PosCartLineVm
+                    {
+                        Code = product.Code,
+                        Name = product.Name,
+                        Price = product.Price,
+                        Qty = Math.Max(1, Math.Min(addQty, product.StockQuantity))
+                    });
+                }
+                else
+                {
+                    var nextQty = line.Qty + addQty;
+                    line.Qty = Math.Max(1, Math.Min(nextQty, product.StockQuantity));
+                }
+
+                SetCartToSession(currentTabId, cart);
+                if (IsSpaFragmentRequest())
+                {
+                    return await PosViewAsync(search, currentTabId);
+                }
+
                 return RedirectToAction(nameof(Pos), new { search, tabId = currentTabId });
             }
-
-            var addQty = qty <= 0 ? 1 : qty;
-            var line = cart.Lines.FirstOrDefault(x => string.Equals(x.Code, product.Code, StringComparison.OrdinalIgnoreCase));
-            if (line == null)
+            catch (Exception ex)
             {
-                cart.Lines.Add(new PosCartLineVm
-                {
-                    Code = product.Code,
-                    Name = product.Name,
-                    Price = product.Price,
-                    Qty = Math.Max(1, Math.Min(addQty, product.StockQuantity))
-                });
+                return Content("CUSTOM_ERROR_POSADD_" + ex.Message + " | " + ex.StackTrace, "text/plain");
             }
-            else
-            {
-                var nextQty = line.Qty + addQty;
-                line.Qty = Math.Max(1, Math.Min(nextQty, product.StockQuantity));
-            }
-
-            SetCartToSession(currentTabId, cart);
-            if (IsSpaFragmentRequest())
-            {
-                return await PosViewAsync(search, currentTabId);
-            }
-
-            return RedirectToAction(nameof(Pos), new { search, tabId = currentTabId });
         }
 
         [HttpGet]
@@ -186,26 +227,33 @@ namespace Children_s_toy_shop_management_software.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PosUpdate([FromForm] string barcode, [FromForm] int qty, [FromQuery] string? search, [FromQuery] string? tabId)
         {
-            var currentTabId = NormalizePosTabId(tabId);
-            var cart = GetCartFromSession(currentTabId);
-
-            var line = cart.Lines.FirstOrDefault(x => string.Equals(x.Code, barcode, StringComparison.OrdinalIgnoreCase));
-            if (line != null)
+            try
             {
-                line.Qty = Math.Max(0, qty);
-                if (line.Qty == 0)
+                var currentTabId = NormalizePosTabId(tabId);
+                var cart = GetCartFromSession(currentTabId);
+
+                var line = cart.Lines.FirstOrDefault(x => string.Equals(x.Code, barcode, StringComparison.OrdinalIgnoreCase));
+                if (line != null)
                 {
-                    cart.Lines.Remove(line);
+                    line.Qty = Math.Max(0, qty);
+                    if (line.Qty == 0)
+                    {
+                        cart.Lines.Remove(line);
+                    }
                 }
-            }
 
-            SetCartToSession(currentTabId, cart);
-            if (IsSpaFragmentRequest())
+                SetCartToSession(currentTabId, cart);
+                if (IsSpaFragmentRequest())
+                {
+                    return await PosViewAsync(search, currentTabId);
+                }
+
+                return RedirectToAction(nameof(Pos), new { search, tabId = currentTabId });
+            }
+            catch (Exception ex)
             {
-                return await PosViewAsync(search, currentTabId);
+                return Content("CUSTOM_ERROR_POSUPDATE_" + ex.Message + " | " + ex.StackTrace, "text/plain");
             }
-
-            return RedirectToAction(nameof(Pos), new { search, tabId = currentTabId });
         }
 
         [HttpPost]
@@ -251,7 +299,9 @@ namespace Children_s_toy_shop_management_software.Controllers
                 return View("Pos", emptyVm);
             }
 
-            const decimal POINT_RATE = 100m;
+            decimal taxRate = 0.1m;
+            var tax = subtotal * taxRate;
+            const decimal POINT_RATE = 1m;
             int? customerId = null;
             int points = 0;
 
@@ -263,13 +313,15 @@ namespace Children_s_toy_shop_management_software.Controllers
             }
 
             var discount = 0m;
+            int pointsUsed = 0;
             if (usePoints && customerId.HasValue)
             {
                 var maxDiscount = points * POINT_RATE;
-                discount = Math.Min(maxDiscount, subtotal);
+                discount = Math.Min(maxDiscount, subtotal + tax);
+                pointsUsed = (int)Math.Ceiling(discount / POINT_RATE);
             }
 
-            var grandTotal = subtotal - discount;
+            var grandTotal = subtotal + tax - discount;
             var pm = string.IsNullOrWhiteSpace(paymentMethod) ? "cash" : paymentMethod.Trim().ToLowerInvariant();
 
             if (pm == "cash" && cash < grandTotal)
@@ -287,7 +339,7 @@ namespace Children_s_toy_shop_management_software.Controllers
             }
 
             var userId = 1; 
-            var orderId = await _posRepo.SaveOrderAsync(cart.Lines, userId, customerId, grandTotal);
+            var orderId = await _posRepo.SaveOrderAsync(cart.Lines, userId, customerId, grandTotal, pointsUsed);
 
             if (pm == "cash")
             {
@@ -459,7 +511,7 @@ namespace Children_s_toy_shop_management_software.Controllers
             }
             catch (Exception ex)
             {
-                // Rebuild page model for error display.
+                
                 var page = await RebuildProductsPageAsync(search, categoryId, ageRange, form.ProductId);
                 page.Error = ex.Message;
                 return View("Products", page);
@@ -583,7 +635,6 @@ namespace Children_s_toy_shop_management_software.Controllers
                 vm.Form.Lines.Add(new StockMovementLineVm { ProductId = products[0].ProductId, Quantity = 1, UnitPrice = 0 });
             }
 
-            // Pad lines so the user can edit/add up to a fixed number without JavaScript complexity.
             var padTo = 10;
             if (products.Count > 0)
             {
@@ -615,7 +666,6 @@ namespace Children_s_toy_shop_management_software.Controllers
             ViewData["Title"] = "Inventory";
             await _inventoryRepo.EnsureSchemaAsync();
 
-            // Default creator: if you later add Identity, map this properly.
             var createdByUserId = 1;
 
             try
@@ -722,13 +772,20 @@ namespace Children_s_toy_shop_management_software.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> CustomerDetailsData(int id)
+        {
+            var orders = await _customersRepo.GetOrdersAsync(id);
+            return Json(orders);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Reports(int? id, DateTime? from, DateTime? to, string? search, string? status, string? paymentMethod)
         {
             ViewData["Title"] = "Sales History";
 
             var start = (from ?? DateTime.Today).Date;
             var end = to ?? DateTime.Today;
-            // Include whole end day.
+    
             end = end.Date.AddDays(1).AddTicks(-1);
 
             var normalizedStatus = string.IsNullOrWhiteSpace(status) ? null : status.Trim();
@@ -815,7 +872,6 @@ namespace Children_s_toy_shop_management_software.Controllers
             ViewData["Title"] = "Staff";
             await _staffRepo.EnsureSchemaAsync();
 
-            // Normalize fields.
             form.FullName = (form.FullName ?? "").Trim();
             form.Email = (form.Email ?? "").Trim();
             form.Address = (form.Address ?? "").Trim();
@@ -972,7 +1028,6 @@ namespace Children_s_toy_shop_management_software.Controllers
         {
             var currentTabId = NormalizePosTabId(tabId);
             var cart = GetCartFromSession(currentTabId);
-            // Tải toàn bộ sản phẩm active; lọc đầu tên trên client.
             var products = await _posRepo.SearchProductsAsync(string.Empty, null, null);
             var error = TempData["PosError"] as string;
             var vm = new PosPageVm
@@ -1007,7 +1062,6 @@ namespace Children_s_toy_shop_management_software.Controllers
             }
             catch
             {
-                // If the session payload is corrupted, do not block the app.
                 return new PosCartVm();
             }
         }
@@ -1046,10 +1100,9 @@ namespace Children_s_toy_shop_management_software.Controllers
 
         private static string GenerateRandomEan13()
         {
-            // Same approach as WinForms version: prefix 893 + random 9 digits => 12 digits, compute check digit.
             var rnd = Random.Shared;
-            var randomPart = rnd.Next(100000000, 999999999).ToString(); // 9 digits
-            var code12 = "893" + randomPart; // 12 digits
+            var randomPart = rnd.Next(100000000, 999999999).ToString(); 
+            var code12 = "893" + randomPart; 
             var checkDigit = ComputeEan13CheckDigit(code12);
             return code12 + checkDigit;
         }

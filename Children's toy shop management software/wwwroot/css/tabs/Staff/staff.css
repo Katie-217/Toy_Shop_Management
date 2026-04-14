@@ -1,0 +1,116 @@
+/* Staff (tab) */
+@import url("../../toyshop-dark.css");
+
+/* staff layout */
+.ts-staff-layout{
+  min-height: 0;
+  height: 100%;
+  align-items: stretch;
+}
+.ts-staff-layout > .ts-shell-main,
+.ts-staff-layout > .ts-shell-side{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  height:100%;
+}
+.ts-staff-layout > .ts-shell-main{ overflow:hidden; }
+.ts-staff-layout > .ts-shell-side{
+  position: static;
+  top: auto;
+  align-self: stretch;
+  overflow:auto;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.ts-staff-layout > .ts-shell-side::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
+
+/* staff table */
+.ts-staff-table-scroll{
+  flex:1 1 auto;
+  min-height:0;
+  max-height:none;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.ts-staff-table-scroll::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
+.ts-staff-table{
+  --bs-table-bg: transparent;
+  --bs-table-color: rgba(255,255,255,.9);
+  table-layout: fixed;
+}
+.ts-staff-table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #101a38 !important;
+  color:#fff;
+  border-color: rgba(255,255,255,.12);
+  padding-left:12px;
+  padding-right:12px;
+}
+.ts-staff-table tbody td{
+  background: transparent !important;
+  color:#fff;
+  border-color: rgba(255,255,255,.08);
+  padding-left:12px;
+  padding-right:12px;
+}
+.ts-staff-table tbody tr{ background: transparent !important; }
+
+/* selected row highlight */
+.ts-staff-table__row--selected{
+  background: transparent !important;
+  box-shadow: inset 3px 0 0 rgba(193, 113, 208, 0.98);
+}
+.ts-staff-table tbody tr.ts-staff-table__row--selected > td{
+  background: rgba(192,132,252,.15) !important;
+}
+.ts-staff-table__row--selected td{ font-weight:400; }
+
+/* staff page height */
+.ts-shell-page--staff{
+  height: calc(100vh - 150px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* staff image dropzone */
+.ts-staff-dropzone{
+  border:1px dashed rgba(255,255,255,.24);
+  border-radius:12px;
+  min-height:150px;
+  background:rgba(255,255,255,.02);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  overflow:hidden;
+  padding:8px;
+}
+.ts-staff-dropzone.is-dragover{
+  border-color:#a78bfa;
+  background:rgba(167,139,250,.12);
+}
+.ts-staff-dropzone__hint{
+  color:rgba(255,255,255,.74);
+  font-size:13px;
+  text-align:center;
+}
+.ts-staff-dropzone__preview{
+  max-width:100%;
+  max-height:220px;
+  border-radius:10px;
+  object-fit:cover;
+}
+

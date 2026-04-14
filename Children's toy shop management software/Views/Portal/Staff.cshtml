@@ -1,5 +1,9 @@
 @model Children_s_toy_shop_management_software.Models.Staff.StaffPageVm
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/tabs/Staff/staff.css" asp-append-version="true" />
+}
+
 <div class="ts-shell-page ts-shell-page--staff">
     <div class="ts-shell-layout ts-staff-layout">
         <div class="ts-shell-main ts-card" style="padding:14px;">
@@ -7,7 +11,8 @@
               method="get"
               asp-action="Staff"
               asp-controller="Portal"
-              style="margin-bottom:10px;">
+              style="margin-bottom:10px;"
+              data-spa-form="1">
             <input type="hidden" id="staffSortIndexInput" name="sortIndex" value="@(Model.SortIndex == 4 ? 4 : 3)" />
             <div style="display:flex; gap:10px; align-items:end;">
                 <div style="flex:1; min-width:0;">
@@ -90,7 +95,8 @@
               asp-controller="Portal"
               asp-route-search="@Model.Search"
               asp-route-sortIndex="@Model.SortIndex"
-              enctype="multipart/form-data">
+              enctype="multipart/form-data"
+              data-spa-form="1">
             @Html.AntiForgeryToken()
 
             <input type="hidden" asp-for="Form.EmployeeId" />
@@ -164,7 +170,8 @@
               asp-controller="Portal"
               asp-route-search="@Model.Search"
               asp-route-sortIndex="@Model.SortIndex"
-              style="display:none;">
+              style="display:none;"
+              data-spa-form="1">
             @Html.AntiForgeryToken()
             <input type="hidden" id="staffDeleteEmployeeId" name="employeeId" value="" />
         </form>
@@ -236,10 +243,25 @@
                 }
                 if (hint) hint.style.display = '';
                 rows.forEach(function (r) { r.classList.remove('ts-staff-table__row--selected'); });
+                
+                const titleEl = document.querySelector('.ts-shell-side .ts-card__title');
+                if (titleEl) titleEl.textContent = 'Create employee';
             }
 
             // Default state: no selected employee, empty form.
             resetFormToCreateMode();
+
+            // Clear selection when clicking empty space in the main table area
+            const mainArea = document.querySelector('.ts-shell-main');
+            if (mainArea) {
+                mainArea.addEventListener('click', function (e) {
+                    const isRow = e.target.closest('tr[data-staff-name]');
+                    const isFilterForm = e.target.closest('#staffFilterForm');
+                    if (!isRow && !isFilterForm) {
+                        resetFormToCreateMode();
+                    }
+                });
+            }
 
             rows.forEach(function (row) {
                 row.style.cursor = 'pointer';
@@ -262,6 +284,9 @@
                     if (imagePathInput) imagePathInput.value = img;
                     if (deleteEmployeeIdInput) deleteEmployeeIdInput.value = row.getAttribute('data-id') || '';
                     if (deleteBtn) deleteBtn.style.display = '';
+
+                    const titleEl = document.querySelector('.ts-shell-side .ts-card__title');
+                    if (titleEl) titleEl.textContent = 'Edit employee';
 
                     if (preview) {
                         if (img) {

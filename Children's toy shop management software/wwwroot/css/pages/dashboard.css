@@ -1,0 +1,354 @@
+#tsDashboardHeaderBlock{
+    display:none !important;
+}
+#tsDashboardRoot .ts-shell-toolbar{
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+#tsDashboardRoot .ts-kpis{
+    gap:12px !important;
+}
+#tsDashboardRoot .ts-kpi{
+    background: rgba(255,255,255,.04) !important;
+    border: 1px solid rgba(255,255,255,.05) !important;
+    border-radius: 14px !important;
+    padding: 12px 12px !important;
+    box-shadow: none !important;
+}
+#tsDashboardRoot .ts-kpi__value{
+    font-size: 16px !important;
+}
+.dash-metric-tab{
+    border:1px solid rgba(255,255,255,.18);
+    background: rgba(0,0,0,.10);
+    color: rgba(255,255,255,.72);
+    padding: 4.5px 10px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: .2px;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.dash-metric-tab:hover{
+    border-color: rgba(255,255,255,.28);
+    color: rgba(255,255,255,.88);
+}
+.dash-metric-tab--active{
+    background: rgba(124,58,237,.22);
+    border-color: rgba(167,139,250,.85);
+    color: rgba(255,255,255,.95);
+}
+#tsDashboardRoot .ts-shell-main.ts-card,
+#tsDashboardRoot .ts-shell-side.ts-card{
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+#tsDashboardRoot .ts-kpi__trend{
+    display:none !important;
+}
+#tsDashboardRoot .ts-chart-wrap{
+    background: rgba(255,255,255,.02) !important;
+    border-color: rgba(255,255,255,.10) !important;
+}
+
+#tsDashboardRoot .dash-donut-wrap{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+#tsDashboardRoot .dash-donut-square{
+    width: min(100%, 300px, 44vh);
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    position: relative;
+    box-sizing: border-box;
+}
+#tsDashboardRoot .dash-donut-square .dash-donut-canvas{
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.ts-page:has(#tsDashboardRoot){
+    min-height: min-content;
+    padding-bottom: 28px;
+}
+#tsDashboardRoot.ts-shell-page{
+    min-height: min-content;
+}
+#tsDashboardRoot .ts-card__title{
+    font-weight: 900 !important;
+}
+#tsDashboardRoot .ts-card__sub{
+    color: rgba(255,255,255,.55) !important;
+    font-weight: 700 !important;
+}
+
+#tsDashboardRoot{
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+}
+.ts-content:has(#tsDashboardRoot){
+    max-width: none;
+    width: 100%;
+    background: linear-gradient(180deg, var(--ts-bg0), var(--ts-bg1));
+    min-height: 100vh;
+}
+#tsDashboardRoot .ts-shell-layout{
+    grid-template-columns: minmax(0, 1fr) minmax(420px, min(680px, 52%)) !important;
+    margin-bottom:0 !important;
+    padding-bottom:0 !important;
+    gap: 18px !important;
+}
+#tsDashboardRoot .ts-shell-main{
+    min-width:0 !important;
+    max-height:none !important;
+    overflow:visible !important;
+}
+#tsDashboardRoot .dash-week-table-scroll,
+#tsDashboardRoot #dashWeekTableScroll{
+    max-height:none !important;
+    overflow:visible !important;
+}
+@media (max-width: 1200px){
+    #tsDashboardRoot .ts-shell-layout{
+        grid-template-columns: minmax(0, 1fr) minmax(380px, min(620px, 50%)) !important;
+    }
+}
+@media (max-width: 1000px){
+    #tsDashboardRoot .ts-shell-layout{
+        grid-template-columns: 1fr !important;
+    }
+}
+#tsDashboardRoot .ts-table-scroll{
+    border-radius:16px !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    max-height: unset;
+}
+#tsDashboardRoot .ts-table-scroll::-webkit-scrollbar{
+    width: 0;
+    height: 0;
+    display: none;
+}
+#tsDashboardRoot .ts-table-scroll table{
+    background-color: rgba(255,255,255,.02) !important;
+    background: rgba(255,255,255,.02) !important;
+    background-image: none !important;
+    --bs-table-bg: rgba(255,255,255,.02);
+    --bs-table-striped-bg: rgba(255,255,255,.02);
+    --bs-table-striped-color: rgba(255,255,255,.92);
+    --bs-table-hover-bg: rgba(255,255,255,.03);
+    --bs-table-active-bg: rgba(255,255,255,.03);
+}
+#tsDashboardRoot .ts-table-scroll thead{
+    background-color: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll tbody{
+    background-color: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll thead th{
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: rgba(255,255,255,.02) !important;
+    background-color: rgba(255,255,255,.02) !important;
+    border-color: rgba(255,255,255,.08) !important;
+}
+#tsDashboardRoot .ts-table-scroll thead th,
+#tsDashboardRoot .ts-table-scroll tbody td,
+#tsDashboardRoot .ts-table-scroll tbody tr,
+#tsDashboardRoot .ts-table-scroll tbody td,
+#tsDashboardRoot .ts-table-scroll tbody th{
+    background: rgba(255,255,255,.02) !important;
+    background-color: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll tbody tr{
+    background-color: rgba(255,255,255,.02) !important;
+    background: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll tbody tr:nth-child(even) td{
+    background: rgba(255,255,255,.02) !important;
+    background-color: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll tbody tr:nth-child(odd) td{
+    background: rgba(255,255,255,.02) !important;
+    background-color: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll tbody tr:nth-child(even){
+    background-color: rgba(255,255,255,.02) !important;
+    background: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll tbody tr:nth-child(odd){
+    background-color: rgba(255,255,255,.02) !important;
+    background: rgba(255,255,255,.02) !important;
+}
+#tsDashboardRoot .ts-table-scroll th,
+#tsDashboardRoot .ts-table-scroll td{
+    border-color: rgba(255,255,255,.08) !important;
+    color: rgba(255,255,255,.92);
+}
+
+#tsDashboardRoot #dashWeekTableHead th{
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 80 !important;
+    background-color: #101a38 !important;
+    background: #101a38 !important;
+    border-color: rgba(255,255,255,.10) !important;
+    color: rgba(255,255,255,.92) !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,.05);
+}
+#tsDashboardRoot #dashWeekTableBody tr{
+    background-color: transparent !important;
+}
+#tsDashboardRoot #dashWeekTableBody td{
+    background-color: transparent !important;
+    border-color: rgba(255,255,255,.08) !important;
+}
+#tsDashboardRoot #dashWeekTableBody tr:nth-of-type(odd) td{
+    background-color: transparent !important;
+}
+#tsDashboardRoot #dashWeekTableBody tr:nth-of-type(even) td{
+    background-color: transparent !important;
+}
+
+#tsDashboardRoot #dashWeekTableBody tr:hover td{
+    background-color: rgba(255,255,255,.07) !important;
+}
+
+#tsDashboardRoot .ts-table-scroll:has(#dashWeekTable){
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box;
+}
+#tsDashboardRoot #dashWeekTable{
+    table-layout: fixed !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+#tsDashboardRoot #dashWeekTable th,
+#tsDashboardRoot #dashWeekTable td{
+    font-size: 11px !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    white-space: nowrap;
+}
+#tsDashboardRoot #dashWeekTableHead th:first-child{
+    text-align: left !important;
+}
+#tsDashboardRoot #dashWeekTableHead th:nth-child(n+2){
+    text-align: right !important;
+}
+
+#tsDashboardRoot .ts-shell-side .ts-table-scroll thead th{
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background-color: #101a38 !important;
+    border-color: rgba(255,255,255,.10) !important;
+    color: rgba(255,255,255,.95) !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,.05);
+    text-align: center;
+}
+#tsDashboardRoot .ts-shell-side .ts-table-scroll table{
+    table-layout: auto !important;
+    width: 100% !important;
+}
+
+#tsDashboardRoot .ts-shell-side .ts-table-scroll .dash-top-products-table{
+    min-width: 600px;
+    width: max(100%, 600px) !important;
+    box-sizing: border-box;
+}
+
+#tsDashboardRoot .dash-top-products-scroll{
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+    max-height: min(520px, 52vh) !important;
+}
+#tsDashboardRoot .ts-table-scroll.dash-top-products-scroll::-webkit-scrollbar{
+    width: 8px;
+    height: 8px;
+    display: block !important;
+}
+#tsDashboardRoot .dash-top-products-scroll::-webkit-scrollbar-thumb{
+    background: rgba(255,255,255,.18);
+    border-radius: 8px;
+}
+#tsDashboardRoot .dash-top-products-table th,
+#tsDashboardRoot .dash-top-products-table td{
+    white-space: nowrap;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+}
+#tsDashboardRoot .dash-top-product-name{
+    max-width: min(320px, 38vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#tsDashboardRoot .ts-shell-side .ts-table-scroll th,
+#tsDashboardRoot .ts-shell-side .ts-table-scroll td{
+    font-size: 11px !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    white-space: nowrap;
+}
+#tsDashboardRoot #dashTopProductsBody tr,
+#tsDashboardRoot #dashTopProductsBody td{
+    background-color: transparent !important;
+}
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody tr:hover td{
+    background-color: rgba(255,255,255,.05) !important;
+}
+
+
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody td:nth-child(1){ text-align:center; }
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody td:nth-child(2){ text-align:left; }
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody td:nth-child(3),
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody td:nth-child(4),
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody td:nth-child(5),
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody td:nth-child(6){ text-align:right; }
+#tsDashboardRoot .ts-shell-side .ts-table-scroll tbody td:nth-child(6){
+    font-size: 10px !important;
+}
+
+
+#tsDashboardRoot #dashWeekTableHead th:first-child,
+#tsDashboardRoot #dashWeekTableBody td:first-child{
+    text-align: left !important;
+}
+#tsDashboardRoot #dashWeekTableHead th:nth-child(n+2),
+#tsDashboardRoot #dashWeekTableBody td:nth-child(n+2){
+    text-align: right !important;
+}
+#tsDashboardRoot #dashTopProductsBody td,
+#tsDashboardRoot .ts-shell-side #dashTopProductsBody th{
+    text-align:left;
+}
+#tsDashboardRoot #dashTopProductsBody td:nth-child(1){
+    text-align:center;
+}
+#tsDashboardRoot #dashTopProductsBody td:nth-child(3),
+#tsDashboardRoot #dashTopProductsBody td:nth-child(4),
+#tsDashboardRoot #dashTopProductsBody td:nth-child(5),
+#tsDashboardRoot #dashTopProductsBody td:nth-child(6){
+    text-align:right;
+}
+

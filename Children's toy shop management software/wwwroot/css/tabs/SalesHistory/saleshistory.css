@@ -1,0 +1,289 @@
+/* SalesHistory (tab) */
+@import url("../../toyshop-dark.css");
+
+/* sales history layout */
+.ts-shell-layout--sales-history{
+  grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr);
+  min-height: calc(100vh - 170px);
+  align-items: stretch;
+}
+
+.ts-shell-layout--sales-history > .ts-shell-main,
+.ts-shell-layout--sales-history > .ts-shell-side{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  height:100%;
+}
+
+/* order list scroll */
+.ts-shell-layout--sales-history .ts-table-scroll{
+  flex:1 1 auto;
+  min-height:0;
+  height:0;
+  max-height:100%;
+  overflow:auto;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.ts-shell-layout--sales-history .ts-table-scroll::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
+
+/* revenue header */
+.ts-sales-history-revenue{
+  margin-bottom:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.92);
+  font-weight:800;
+  letter-spacing:.01em;
+}
+
+/* receipt panel */
+.ts-sales-history-receipt-shell{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-height:0;
+}
+
+.ts-sales-history-receipt{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  max-height:none;
+  border-radius:14px;
+  border:1px solid rgba(0,0,0,.08);
+  background:#fff !important;
+  color:#111 !important;
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
+  overflow:auto;
+}
+
+.ts-sales-history-receipt.ts-bill-receipt{
+  padding:28px 22px 20px;
+  font-family:Georgia, 'Times New Roman', Times, serif;
+  font-size:13px;
+  line-height:1.45;
+  scrollbar-width:thin;
+}
+.ts-sales-history-receipt .ts-bill-receipt__brand{
+  text-align:center;
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__contact{
+  text-align:center;
+  font-size:11.5px;
+  font-family:'Kanit', system-ui, sans-serif;
+  color:#333;
+  line-height:1.5;
+  margin-bottom:14px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__title{
+  text-align:center;
+  font-size:15px;
+  font-weight:800;
+  margin:0 0 14px;
+  letter-spacing:.04em;
+  font-family:'Kanit', system-ui, sans-serif;
+}
+.ts-sales-history-receipt .ts-bill-receipt__meta{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px 16px;
+  font-size:12px;
+  font-family:'Kanit', system-ui, sans-serif;
+  margin-bottom:14px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__meta-col--right{ text-align:right; }
+.ts-sales-history-receipt .ts-bill-receipt__meta-label{
+  font-weight:700;
+  margin-right:4px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__cust{
+  font-size:12px;
+  font-family:'Kanit', system-ui, sans-serif;
+  margin-bottom:12px;
+  border-top:1px dashed #ccc;
+  border-bottom:1px dashed #ccc;
+  padding:10px 0;
+}
+.ts-sales-history-receipt .ts-bill-receipt__cust strong{
+  display:inline-block;
+  min-width:88px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__table-wrap{ margin-bottom:12px; }
+.ts-sales-history-receipt .ts-bill-receipt__table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:11.5px;
+  font-family:'Kanit', system-ui, sans-serif;
+}
+.ts-sales-history-receipt .ts-bill-receipt__table thead th{
+  background:#fff7d6;
+  border:1px solid #e8e0c0;
+  padding:6px 4px;
+  font-weight:800;
+  text-align:left;
+}
+.ts-sales-history-receipt .ts-bill-receipt__table thead th.num,
+.ts-sales-history-receipt .ts-bill-receipt__table tbody td.num{ text-align:right; }
+.ts-sales-history-receipt .ts-bill-col-item{ width: 40%; }
+.ts-sales-history-receipt .ts-bill-col-qty{ width: 12%; }
+.ts-sales-history-receipt .ts-bill-col-price{ width: 22%; }
+.ts-sales-history-receipt .ts-bill-col-amt{ width: 22%; }
+.ts-sales-history-receipt .ts-bill-receipt__table tbody td{
+  border:1px solid #e8e8e8;
+  padding:4px;
+  vertical-align:top;
+}
+.ts-sales-history-receipt .ts-bill-receipt__empty{
+  text-align:center;
+  color:#666;
+  padding:12px!important;
+}
+.ts-sales-history-receipt .ts-bill-receipt__totals{
+  font-size:12px;
+  font-family:'Kanit', system-ui, sans-serif;
+  margin-bottom:10px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__row{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:4px;
+  color:#444;
+}
+.ts-sales-history-receipt .ts-bill-receipt__grand{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  font-weight:900;
+  font-size:14px;
+  margin-top:8px;
+  padding-top:8px;
+  border-top: 1px solid #ddd;
+}
+.ts-sales-history-receipt .ts-bill-receipt__words{
+  font-style:italic;
+  font-size:11px;
+  color:#444;
+  margin-top:6px;
+  text-align:right;
+}
+.ts-sales-history-receipt .ts-bill-receipt__payinfo{
+  font-size:11.5px;
+  font-family:'Kanit', system-ui, sans-serif;
+  margin-bottom:12px;
+  border-top:1px dashed #ccc;
+  padding-top:10px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__payinfo div{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:4px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__qr{
+  text-align:center;
+  margin:14px 0 8px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__qr canvas{
+  display:inline-block;
+  vertical-align:middle;
+}
+.ts-sales-history-receipt .ts-bill-receipt__qr-hint{
+  font-size:11px;
+  font-family:'Kanit', system-ui, sans-serif;
+  color:#333;
+  margin-top:6px;
+}
+.ts-sales-history-receipt .ts-bill-receipt__thanks{
+  text-align:center;
+  font-size:12px;
+  font-weight:700;
+  font-family:'Kanit', system-ui, sans-serif;
+  margin-top: 10px;
+  padding-top:16px;
+  border-top: 1px solid #eee;
+}
+
+.ts-sales-history-actions{
+  display:flex;
+  gap:10px;
+  margin-top:8px;
+}
+.ts-sales-history-actions .btn{ flex:1; }
+
+/* reports table */
+.ts-reports-table{
+  --bs-table-bg: transparent;
+  --bs-table-color: rgba(255,255,255,.9);
+  background: transparent !important;
+  table-layout: fixed;
+}
+.ts-reports-table thead th{
+  background: transparent !important;
+  border-color: rgba(255,255,255,.12);
+  color: #fff !important;
+}
+.ts-reports-table tbody tr{ background: transparent !important; }
+.ts-reports-table tbody td{
+  border-color: rgba(255,255,255,.08);
+  color:#fff !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-reports-table th,
+.ts-reports-table td{ width:auto; }
+.ts-reports-table td *,
+.ts-reports-table a{ color:#fff !important; }
+.ts-reports-table thead th:nth-child(3),
+.ts-reports-table tbody td:nth-child(3){ padding-right: 22px; width:24% !important; }
+.ts-reports-table thead th:nth-child(4),
+.ts-reports-table tbody td:nth-child(4){ padding-left: 22px; width:16% !important; }
+.ts-reports-table thead th:nth-child(5),
+.ts-reports-table tbody td:nth-child(5){ width:14% !important; }
+.ts-reports-table thead th:first-child,
+.ts-reports-table tbody td:first-child{
+  text-align:center;
+  padding-right: 14px;
+}
+.ts-reports-table thead th:nth-child(2),
+.ts-reports-table tbody td:nth-child(2){ padding-left: 14px; }
+
+.ts-reports-table__row-link{ cursor:pointer; }
+.ts-reports-table__row--selected{
+  background: transparent !important;
+  box-shadow: inset 3px 0 0 rgba(230, 152, 235, 1);
+}
+.ts-reports-table__row--selected > td{
+  background: rgba(201, 166, 195, 0.15) !important;
+}
+.ts-reports-table__row--selected td,
+.ts-reports-table__row--selected td *{
+  color:#fff !important;
+  font-weight:400;
+}
+
+/* order status dot */
+.ts-order-dot{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  vertical-align:middle;
+  box-shadow:0 0 0 2px rgba(255,255,255,.14);
+}
+.ts-order-dot--paid{ background:#22c55e; }
+.ts-order-dot--cancelled{ background:#ef4444; }
+.ts-order-dot--pending{ background:#f97316; }
+

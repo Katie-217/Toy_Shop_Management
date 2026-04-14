@@ -24,6 +24,20 @@ builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.Dashboar
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "text/plain";
+        await context.Response.WriteAsync("GLOBAL_ERROR: " + ex.GetType().Name + " - " + ex.Message + "\r\n" + ex.StackTrace);
+    }
+});
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

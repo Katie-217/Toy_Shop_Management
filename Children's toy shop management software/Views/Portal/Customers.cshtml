@@ -1,125 +1,230 @@
 @model Children_s_toy_shop_management_software.Models.Customers.CustomersPageVm
 
-<div class="ts-shell-page">
-    <div class="ts-shell-toolbar">
-        <form method="get"
-              asp-action="Customers"
-              asp-controller="Portal">
-            <div class="ts-shell-toolbar__row">
-                <div style="flex:1; min-width:240px;">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Search</label>
-                    <input class="form-control" name="search" value="@Model.Search" placeholder="Search by name or phone..." />
-                </div>
-                <button type="submit" class="btn btn-primary">Apply</button>
-            </div>
-        </form>
-    </div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/tabs/Customers/customers.css" asp-append-version="true" />
+}
 
-    <div class="ts-shell-layout">
+<div class="ts-shell-page ts-shell-page--customers">
+    <div class="ts-shell-layout ts-customers-layout">
         <div class="ts-shell-main ts-card" style="padding:14px;">
-        <div class="ts-table-scroll">
-            <table class="table table-dark table-sm align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th style="width:70px;">ID</th>
-                        <th>Name</th>
-                        <th style="width:160px;">Phone</th>
-                        <th style="width:200px;">Total spent</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in Model.Customers)
-                    {
-                        var isSelected = Model.SelectedCustomer?.Id == c.Id;
-                        <tr class="@(isSelected ? "table-primary" : "")">
-                            <td>
-                                <a asp-action="Customers" asp-controller="Portal"
-                                   asp-route-id="@c.Id"
-                                   asp-route-search="@Model.Search"
-                                   class="text-decoration-none text-light">
-                                    @c.Id
-                                </a>
-                            </td>
-                            <td>@c.FullName</td>
-                            <td>@c.Phone</td>
-                            <td>@c.TotalSpent.ToString("N0") ₫</td>
-                        </tr>
-                    }
-                    @if (Model.Customers.Count == 0)
-                    {
+            <form id="customerFilterForm"
+                  method="get"
+                  asp-action="Customers"
+                  asp-controller="Portal"
+                  style="margin-bottom:10px;">
+                <div style="display:flex; gap:10px; align-items:end;">
+                    <div style="flex:1; min-width:0;">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Search</label>
+                        <input id="customerSearchInput"
+                               class="form-control"
+                               name="search"
+                               value="@Model.Search"
+                               placeholder="Search by name or phone..." />
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="min-width:84px;">Apply</button>
+                </div>
+            </form>
+
+            <div class="ts-table-scroll ts-customers-table-scroll">
+                <table class="table table-sm align-middle mb-0 ts-customers-table" id="customerListTable">
+                    <thead>
                         <tr>
-                            <td colspan="4" style="color:rgba(255,255,255,.7);">No customers found.</td>
+                            <th style="width:70px;">ID</th>
+                            <th>Name</th>
+                            <th style="width:160px;">Phone</th>
+                            <th style="width:200px;">Total spent</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.Customers)
+                        {
+                            <tr data-customer-name="@c.FullName"
+                                data-id="@c.Id"
+                                data-fullname="@c.FullName"
+                                data-phone="@c.Phone"
+                                data-address="@c.Address"
+                                data-points="@c.Points.ToString("N0")"
+                                data-spent="@c.TotalSpent.ToString("N0")">
+                                <td>@c.Id</td>
+                                <td>@c.FullName</td>
+                                <td>@c.Phone</td>
+                                <td>@c.TotalSpent.ToString("N0") ₫</td>
+                            </tr>
+                        }
+                        @if (Model.Customers.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="4" style="color:rgba(255,255,255,.7);">No customers found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-    <div class="ts-shell-side ts-card" style="padding:14px;">
-        @if (Model.SelectedCustomer == null)
-        {
-            <div class="ts-shell-empty ts-placeholder" style="height:min(420px, 55vh); border:none; background:transparent;">
+        <div class="ts-shell-side ts-card" style="padding:14px; overflow:auto;">
+            <div id="customerEmptyState" class="ts-shell-empty ts-placeholder" style="height:min(420px, 55vh); border:none; background:transparent;">
                 <div style="font-weight:900; color:rgba(255,255,255,.85);">Select a customer</div>
             </div>
-        }
-        else
-        {
-            <div class="ts-card__title" style="margin-bottom:10px;">Customer details</div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                <div class="ts-kpi" style="padding:12px;">
-                    <div class="ts-kpi__label">Full name</div>
-                    <div class="ts-kpi__value" style="font-size:16px;">@Model.SelectedCustomer.FullName</div>
+
+            <div id="customerDetailsPanel" style="display:none;">
+                <div class="ts-card__title" style="margin-bottom:10px;">Customer details</div>
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Full name</label>
+                        <input class="form-control" id="inputFullName" readonly />
+                    </div>
+                    <div class="col-12">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Points</label>
+                        <input class="form-control" id="inputPoints" readonly />
+                    </div>
+                    <div class="col-12">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Phone</label>
+                        <input class="form-control" id="inputPhone" readonly />
+                    </div>
+                    <div class="col-12">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Address</label>
+                        <input class="form-control" id="inputAddress" readonly />
+                    </div>
                 </div>
-                <div class="ts-kpi" style="padding:12px;">
-                    <div class="ts-kpi__label">Points</div>
-                    <div class="ts-kpi__value" style="font-size:16px;">@Model.SelectedCustomer.Points.ToString("N0")</div>
-                </div>
-                <div class="ts-kpi" style="padding:12px;">
-                    <div class="ts-kpi__label">Phone</div>
-                    <div class="ts-kpi__value" style="font-size:16px;">@Model.SelectedCustomer.Phone</div>
-                </div>
-                <div class="ts-kpi" style="padding:12px;">
-                    <div class="ts-kpi__label">Address</div>
-                    <div class="ts-kpi__value" style="font-size:16px;">@Model.SelectedCustomer.Address</div>
+                
+
+
+                <div class="ts-card" style="padding:14px; background: rgba(255,255,255,.03);">
+                    <div class="ts-card__title" style="font-size:14px; margin-bottom:6px;">Order history</div>
+
+                    <div class="ts-no-scrollbar" style="max-height:340px; overflow:auto; border-radius:16px;">
+                        <table class="table table-sm align-middle mb-0 ts-customers-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:90px;">Order ID</th>
+                                    <th style="width:150px;">Date</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblOrderHistory">
+                                <tr>
+                                    <td colspan="3" style="color:rgba(255,255,255,.7);">Loading orders...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            <div style="height:14px;"></div>
-
-            <div class="ts-card" style="padding:14px; background: rgba(255,255,255,.03);">
-                <div class="ts-card__title" style="font-size:14px; margin-bottom:6px;">Order history</div>
-
-                <div style="max-height:340px; overflow:auto; border-radius:16px;">
-                    <table class="table table-dark table-sm align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width:90px;">Order ID</th>
-                                <th style="width:150px;">Date</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var o in Model.Orders)
-                            {
-                                <tr>
-                                    <td>@o.OrderId</td>
-                                    <td>@o.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td>@o.TotalAmount.ToString("N0") ₫</td>
-                                </tr>
-                            }
-                            @if (Model.Orders.Count == 0)
-                            {
-                                <tr>
-                                    <td colspan="3" style="color:rgba(255,255,255,.7);">No orders found.</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        }
-    </div>
+        </div>
     </div>
 </div>
 
+<script>
+    (function () {
+        const searchInput = document.getElementById('customerSearchInput');
+        const table = document.getElementById('customerListTable');
+        
+        const emptyState = document.getElementById('customerEmptyState');
+        const detailsPanel = document.getElementById('customerDetailsPanel');
+        
+        const inputFullName = document.getElementById('inputFullName');
+        const inputPoints = document.getElementById('inputPoints');
+        const inputPhone = document.getElementById('inputPhone');
+        const inputAddress = document.getElementById('inputAddress');
+        const tblOrderHistory = document.getElementById('tblOrderHistory');
+
+        function normalizeText(s) {
+            if (!s) return '';
+            try {
+                return String(s)
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim();
+            } catch {
+                return String(s).toLowerCase().trim();
+            }
+        }
+
+        if (searchInput && table) {
+            const rows = table.querySelectorAll('tbody tr[data-customer-name]');
+            
+            searchInput.addEventListener('input', function () {
+                const q = normalizeText(searchInput.value);
+                rows.forEach(function (row) {
+                    const name = normalizeText(row.getAttribute('data-customer-name') || '');
+                    const phone = normalizeText(row.getAttribute('data-phone') || '');
+                    row.style.display = (!q || name.indexOf(q) !== -1 || phone.indexOf(q) !== -1) ? '' : 'none';
+                });
+            });
+
+            rows.forEach(function (row) {
+                row.style.cursor = 'pointer';
+                row.addEventListener('click', function (e) {
+                    const interactive = e.target.closest('a,button,input,select,textarea,label,form');
+                    if (interactive) return;
+                    
+                    rows.forEach(function (r) { r.classList.remove('ts-customers-table__row--selected'); });
+                    row.classList.add('ts-customers-table__row--selected');
+
+                    const id = row.getAttribute('data-id');
+                    if (inputFullName) inputFullName.value = row.getAttribute('data-fullname') || '';
+                    if (inputPoints) inputPoints.value = row.getAttribute('data-points') || '0';
+                    if (inputPhone) inputPhone.value = row.getAttribute('data-phone') || '';
+                    if (inputAddress) inputAddress.value = row.getAttribute('data-address') || '';
+
+                    emptyState.style.display = 'none';
+                    detailsPanel.style.display = 'block';
+
+                    tblOrderHistory.style.opacity = '0.4';
+                    
+                    fetch('@Url.Action("CustomerDetailsData", "Portal")?id=' + id)
+                        .then(res => res.json())
+                        .then(orders => {
+                            if (orders && orders.length > 0) {
+                                let html = '';
+                                orders.forEach(o => {
+                                    const d = new Date(o.orderDate);
+                                    
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                                    const year = d.getFullYear();
+                                    const hours = String(d.getHours()).padStart(2, '0');
+                                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                                    
+                                    const dateStr = `${day}/${month}/${year} ${hours}:${minutes}`;
+                                    
+                                    const total = o.totalAmount.toLocaleString('vi-VN') + ' ₫';
+                                    
+                                    html += `<tr>
+                                                <td>${o.orderId}</td>
+                                                <td>${dateStr}</td>
+                                                <td>${total}</td>
+                                             </tr>`;
+                                });
+                                tblOrderHistory.innerHTML = html;
+                            } else {
+                                tblOrderHistory.innerHTML = '<tr><td colspan="3" style="color:rgba(255,255,255,.7);">No orders found.</td></tr>';
+                            }
+                            tblOrderHistory.style.opacity = '1';
+                        })
+                        .catch(err => {
+                            tblOrderHistory.innerHTML = '<tr><td colspan="3" style="color:#ef4444;">Error loading orders.</td></tr>';
+                            tblOrderHistory.style.opacity = '1';
+                            console.error(err);
+                        });
+                });
+            });
+            
+            // Automatically select first row if available
+            if (rows.length > 0) {
+                // If there's an active selected parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const selectedId = urlParams.get('id');
+                let rowToSelect = rows[0];
+                if (selectedId) {
+                    const matchedRow = Array.from(rows).find(r => r.getAttribute('data-id') === selectedId);
+                    if (matchedRow) rowToSelect = matchedRow;
+                }
+                
+                rowToSelect.click();
+            }
+        }
+    })();
+</script>

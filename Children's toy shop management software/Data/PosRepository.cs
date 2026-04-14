@@ -247,7 +247,8 @@ WHERE PhoneNumber = @Phone AND IsMember = 1";
         IEnumerable<PosCartLineVm> cart,
         int userId,
         int? customerId,
-        decimal grandTotal)
+        decimal grandTotal,
+        int pointsUsed = 0)
     {
         var items = cart?.Where(x => x != null && x.Qty > 0).ToList() ?? new List<PosCartLineVm>();
         if (items.Count == 0) throw new InvalidOperationException("Cart is empty.");
@@ -306,6 +307,15 @@ VALUES (@OrderID, @ProductID, @Quantity, @UnitPrice);";
                 updateCmd.Parameters.AddWithValue("@Qty", item.Qty);
                 updateCmd.Parameters.AddWithValue("@Id", productId);
                 await updateCmd.ExecuteNonQueryAsync();
+            }
+
+            if (customerId.HasValue && pointsUsed > 0)
+            {
+                const string updatePointsSql = @"UPDATE Customers SET Points = ISNULL(Points,0) - @used WHERE CustomerID = @cid";
+                await using var updatePointsCmd = new SqlCommand(updatePointsSql, conn, tx);
+                updatePointsCmd.Parameters.AddWithValue("@used", pointsUsed);
+                updatePointsCmd.Parameters.AddWithValue("@cid", customerId.Value);
+                await updatePointsCmd.ExecuteNonQueryAsync();
             }
 
             tx.Commit();

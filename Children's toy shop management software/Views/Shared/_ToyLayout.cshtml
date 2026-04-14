@@ -17,7 +17,7 @@
     <title>@title - Toy Shop Management</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/toyshop-dark.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <div class="ts-app">
@@ -185,28 +185,216 @@
             const body = document.body;
             const main = document.querySelector('main.ts-main');
             if (!main) return;
+            const pendingSpaForms = new WeakSet();
 
-            function mountFragmentHtml(html) {
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const root = doc.body.firstElementChild;
-                if (!root) {
-                    main.innerHTML = html;
-                    return;
-                }
-                main.innerHTML = '';
-                const imported = document.importNode(root, true);
-                main.appendChild(imported);
-                imported.querySelectorAll('script').forEach(function (old) {
-                    const s = document.createElement('script');
-                    if (old.src) {
-                        s.src = old.src;
-                        if (old.async) s.async = true;
-                        if (old.defer) s.defer = true;
-                    } else {
-                        s.textContent = old.textContent;
+            function captureScrollState() {
+                const state = {
+                    winY: window.scrollY || 0,
+                    byId: {},
+                    tableScrollTops: [],
+                    byKey: {}
+                };
+                try {
+                    const curPage = main.querySelector('.ts-page');
+                    if (!curPage) return state;
+
+                    // Preserve scroll for any scrollable elements that have ids (most stable key).
+                    curPage.querySelectorAll('[id]').forEach(function (el) {
+                        try {
+                            if (!el) return;
+                            const st = el.scrollTop || 0;
+                            if (st > 0) state.byId[el.id] = st;
+                        } catch { }
+                    });
+
+                    // Preserve scroll for marked containers (stable across swaps).
+                    curPage.querySelectorAll('[data-preserve-scroll]').forEach(function (el) {
+                        try {
+                            const key = el.getAttribute('data-preserve-scroll');
+                            if (!key) return;
+                            state.byKey[key] = el.scrollTop || 0;
+                        } catch { }
+                    });
+
+                    // Also preserve for common scroll containers by index (fallback).
+                    curPage.querySelectorAll('.ts-table-scroll').forEach(function (el) {
+                        try { state.tableScrollTops.push(el.scrollTop || 0); } catch { state.tableScrollTops.push(0); }
+                    });
+                } catch { }
+                return state;
+            }
+
+            function restoreScrollState(nextRoot, state) {
+                if (!state) return;
+                try {
+                    // Restore window scroll first (prevents visible jump while restoring inner scrolls).
+                    if (typeof state.winY === 'number') window.scrollTo(0, state.winY);
+                } catch { }
+
+                try {
+                    if (nextRoot && state.byId) {
+                        Object.keys(state.byId).forEach(function (id) {
+                            const el = nextRoot.querySelector('#' + CSS.escape(id));
+                            if (el) el.scrollTop = state.byId[id];
+                        });
                     }
-                    old.parentNode.replaceChild(s, old);
+                } catch { }
+
+                try {
+                    if (nextRoot && state.byKey) {
+                        Object.keys(state.byKey).forEach(function (key) {
+                            const el = nextRoot.querySelector('[data-preserve-scroll="' + CSS.escape(key) + '"]');
+                            if (el) el.scrollTop = state.byKey[key];
+                        });
+                    }
+                } catch { }
+
+                try {
+                    if (nextRoot && Array.isArray(state.tableScrollTops) && state.tableScrollTops.length) {
+                        const els = nextRoot.querySelectorAll('.ts-table-scroll');
+                        for (let i = 0; i < els.length && i < state.tableScrollTops.length; i++) {
+                            els[i].scrollTop = state.tableScrollTops[i];
+                        }
+                    }
+                } catch { }
+            }
+
+            function captureFocusState() {
+                try {
+                    const curPage = main.querySelector('.ts-page');
+                    const a = document.activeElement;
+                    if (!curPage || !a || !curPage.contains(a)) return null;
+                    const tag = (a.tagName || '').toLowerCase();
+                    const id = a.id || '';
+                    const name = a.getAttribute ? (a.getAttribute('name') || '') : '';
+                    const key = a.getAttribute ? (a.getAttribute('data-focus-key') || '') : '';
+                    let sel = null;
+                    if (a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement) {
+                        try {
+                            sel = {
+                                start: typeof a.selectionStart === 'number' ? a.selectionStart : null,
+                                end: typeof a.selectionEnd === 'number' ? a.selectionEnd : null
+                            };
+                        } catch { }
+                    }
+                    return { tag, id, name, key, sel };
+                } catch {
+                    return null;
+                }
+            }
+
+            function restoreFocusState(nextRoot, focusState) {
+                if (!nextRoot || !focusState) return;
+                try {
+                    let el = null;
+                    if (focusState.id) el = nextRoot.querySelector('#' + CSS.escape(focusState.id));
+                    if (!el && focusState.key) el = nextRoot.querySelector('[data-focus-key="' + CSS.escape(focusState.key) + '"]');
+                    if (!el && focusState.name) el = nextRoot.querySelector(focusState.tag + '[name="' + CSS.escape(focusState.name) + '"]');
+                    if (!el) return;
+                    if (el.focus) el.focus({ preventScroll: true });
+                    if (focusState.sel && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+                        const s = focusState.sel.start;
+                        const e = focusState.sel.end;
+                        if (typeof s === 'number' && typeof e === 'number') {
+                            try { el.setSelectionRange(s, e); } catch { }
+                        }
+                    }
+                } catch { }
+            }
+
+            function executeScripts(container) {
+                if (!container) return;
+                container.querySelectorAll('script').forEach(function (old) {
+                    try {
+                        const s = document.createElement('script');
+                        if (old.src) {
+                            s.src = old.src;
+                            if (old.async) s.async = true;
+                            if (old.defer) s.defer = true;
+                        } else {
+                            s.textContent = old.textContent;
+                        }
+                        old.parentNode.replaceChild(s, old);
+                    } catch (err) {
+                        console.error('executeScripts error for script:', old, err);
+                    }
                 });
+            }
+
+            function isPosCartAction(form) {
+                return false; /* Disable right-only, we do a smooth 2-column swap for everything */
+            }
+
+            function mountPosRightPanelOnly(html) {
+                return false;
+            }
+
+            function mountFragmentHtml(html, opts) {
+                const options = opts || {};
+                const preserveScroll = !!options.preserveScroll;
+                const scrollState = preserveScroll ? captureScrollState() : null;
+                const focusState = preserveScroll ? captureFocusState() : null;
+                const curPageForLock = preserveScroll ? main.querySelector('.ts-page') : null;
+                let lockedHeight = null;
+                try {
+                    if (curPageForLock) {
+                        const r = curPageForLock.getBoundingClientRect();
+                        lockedHeight = Math.max(0, Math.round(r.height));
+                        if (lockedHeight > 0) {
+                            curPageForLock.style.minHeight = lockedHeight + 'px';
+                        }
+                    }
+                } catch { }
+
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const root = doc.querySelector('#ts-fragment-root') || doc.body.firstElementChild;
+                if (!root) { main.innerHTML = html; return; }
+
+                const imported = document.importNode(root, true);
+                if (preserveScroll) {
+                    imported.classList.remove('ts-anim-in');
+                    imported.classList.add('ts-page--spa-swap');
+                }
+                const curPage = main.querySelector('.ts-page');
+                
+                if (curPage) {
+                    const curMain = curPage.querySelector('.ts-shell-main');
+                    const curSide = curPage.querySelector('.ts-shell-side');
+                    const newMain = imported.querySelector('.ts-shell-main');
+                    const newSide = imported.querySelector('.ts-shell-side');
+
+                    if (preserveScroll && curMain && curSide && newMain && newSide) {
+                        curMain.replaceWith(newMain);
+                        curSide.replaceWith(newSide);
+                        try {
+                            executeScripts(main.querySelector('.ts-page'));
+                        } catch (e) {
+                            console.error('executeScripts failed:', e);
+                        }
+                    } else {
+                        curPage.replaceWith(imported);
+                        try {
+                            executeScripts(imported);
+                        } catch (e) {
+                            console.error('executeScripts failed on imported:', e);
+                        }
+                    }
+                } else {
+                    main.innerHTML = '';
+                    main.appendChild(imported);
+                    executeScripts(imported);
+                }
+                if (preserveScroll) {
+                    // Restore scroll after DOM replacement and scripts have run.
+                    restoreScrollState(imported, scrollState);
+                    restoreFocusState(imported, focusState);
+                }
+                // Release height lock on next frame to avoid visible jump.
+                try {
+                    requestAnimationFrame(function () {
+                        imported.style.minHeight = '';
+                    });
+                } catch { }
             }
 
             function updateNavActive() {
@@ -259,17 +447,17 @@
 
             function swapNavContent(href) {
                 const fetchUrl = new URL(href, window.location.origin);
-                fetchUrl.searchParams.set('fragment', '1');
                 return fetch(fetchUrl.toString(), {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-SPA-Fragment': '1',
                         'Accept': 'text/html'
                     }
                 }).then(function (res) {
                     if (!res.ok) throw new Error('nav fetch failed');
                     return res.text();
                 }).then(function (html) {
-                    mountFragmentHtml(html);
+                    mountFragmentHtml(html, { preserveScroll: false });
                     const root = main.querySelector('#ts-fragment-root');
                     if (root && root.dataset.pageTitle) {
                         document.title = root.dataset.pageTitle + ' - Toy Shop Management';
@@ -304,7 +492,6 @@
                     e.preventDefault();
                     swapNavContent(href).then(function () {
                         const clean = new URL(href, window.location.origin);
-                        clean.searchParams.delete('fragment');
                         history.pushState({ spa: true }, '', clean.pathname + clean.search);
                         updateNavActive();
                         syncNavGroups();
@@ -343,6 +530,10 @@
                 const form = e.target;
                 if (!(form instanceof HTMLFormElement)) return;
                 if (!form.hasAttribute('data-spa-form')) return;
+                if (pendingSpaForms.has(form)) {
+                    e.preventDefault();
+                    return;
+                }
                 /* POS: name search is client-side only (Pos.cshtml); do not POST fragment if input is not a barcode. */
                 if (form.id === 'posSearchForm') {
                     const input = document.getElementById('posSearchInput');
@@ -359,12 +550,18 @@
                     }
                 }
                 e.preventDefault();
+                pendingSpaForms.add(form);
                 const fd = new FormData(form);
+                const usp = new URLSearchParams();
+                fd.forEach(function(value, key) {
+                    usp.append(key, value);
+                });
+                
                 const action = form.action || window.location.href;
                 const method = (form.getAttribute('method') || 'POST').toUpperCase();
                 fetch(action, {
                     method: method,
-                    body: fd,
+                    body: usp,
                     credentials: 'same-origin',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -382,17 +579,32 @@
                             throw new Error('unexpected json');
                         });
                     }
-                    if (!res.ok) throw new Error('form fetch failed');
+                    if (!res.ok) {
+                        return res.text().then(function (errTxt) {
+                            let errTitle = errTxt.substring(0, 100) + '...';
+                            try {
+                                const m = errTxt.match(/<title>([^<]+)<\/title>/i);
+                                if (m && m[1]) errTitle = m[1].trim();
+                            } catch (e) { }
+                            throw new Error('HTTP ' + res.status + ' - ' + errTitle);
+                        });
+                    }
                     return res.text();
                 }).then(function (html) {
                     if (typeof html !== 'string') return;
-                    mountFragmentHtml(html);
+                    if (isPosCartAction(form) && mountPosRightPanelOnly(html)) {
+                        return;
+                    }
+                    mountFragmentHtml(html, { preserveScroll: true });
                     const root = main.querySelector('#ts-fragment-root');
                     if (root && root.dataset.pageTitle) {
                         document.title = root.dataset.pageTitle + ' - Toy Shop Management';
                     }
-                }).catch(function () {
-                    form.submit();
+                }).catch(function (err) {
+                    console.error('SPA form error:', err);
+                    alert('SPA Error: ' + err.message);
+                }).finally(function () {
+                    pendingSpaForms.delete(form);
                 });
             });
 
@@ -417,7 +629,7 @@
                     if (!res.ok) throw new Error('spa get failed');
                     return res.text();
                 }).then(function (html) {
-                    mountFragmentHtml(html);
+                    mountFragmentHtml(html, { preserveScroll: true });
                     const root = main.querySelector('#ts-fragment-root');
                     if (root && root.dataset.pageTitle) {
                         document.title = root.dataset.pageTitle + ' - Toy Shop Management';

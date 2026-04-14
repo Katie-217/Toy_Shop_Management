@@ -1,11 +1,15 @@
 @model Children_s_toy_shop_management_software.Models.POS.PosPageVm
 @using System.Globalization
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/tabs/POS/pos.css" asp-append-version="true" />
+}
+
 @{
     var subtotal = Model.Cart.Lines.Sum(x => x.Amount);
     var lineCount = Model.Cart.Lines.Sum(x => x.Qty);
     var taxRate = 0.1m;
-    var pointRate = 100m;
+    var pointRate = 1m;
     var billCashier = User?.Identity?.IsAuthenticated == true ? User.Identity!.Name : "—";
     var billNow = DateTime.Now;
     var billReceiptVm = new Children_s_toy_shop_management_software.Models.Shared.BillReceiptVm
@@ -51,7 +55,7 @@
 
 <div class="ts-pos-page">
     <div class="ts-pos-body">
-        <div class="ts-pos-left-stack">
+        <div class="ts-pos-left-stack ts-shell-main">
         @if (!string.IsNullOrWhiteSpace(Model.Error))
         {
             <div class="alert alert-danger mb-0">@Model.Error</div>
@@ -197,7 +201,7 @@
 
     <div class="ts-card ts-pos-right-panel d-flex flex-column" style="height: calc(100vh - 120px); padding: 0;">
         
-        <div class="ts-pos-lineitems-container flex-grow-1 p-2" style="overflow-y: auto;">
+        <div class="ts-pos-lineitems-container flex-grow-1 p-2" style="overflow-y: auto;" id="posCartScroll" data-preserve-scroll="pos-cart">
             <table class="table table-borderless align-middle mb-0 ts-pos-bill-table">
                 <colgroup>
                     <col style="width:20%" />
@@ -236,7 +240,7 @@
                                         <input type="hidden" name="qty" value="@(line.Qty - 1)" />
                                         <button type="submit" class="btn btn-sm btn-outline-secondary ts-pos-qty-btn">-</button>
                                     </form>
-                                    <span class="px-2 text-dark rounded fw-bold ts-pos-qty-pill">@line.Qty</span>
+                                    <span class="px-2 rounded fw-bold ts-pos-qty-pill">@line.Qty</span>
                                     <form method="post" asp-action="PosAdd" asp-controller="Portal" asp-route-search="@Model.Search" asp-route-tabId="@Model.CurrentTabId" data-spa-form="1" class="m-0">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="barcode" value="@line.Code" />
@@ -317,7 +321,7 @@
                             <span>Discount:</span>
                             <span id="previewDiscount">0</span>
                         </div>
-                        <div classx ts-pos-money-row--grand">
+                        <div class="ts-pos-money-row ts-pos-money-row--grand">
                             <span>Grand total:</span>
                             <span id="previewTotal">@subtotal.ToString("N0")</span>
                         </div>
@@ -327,7 +331,7 @@
                                    id="cashPaidInput"
                                    class="form-control form-control-sm text-end fw-bold ts-pos-pay-input"
                                    inputmode="numeric"
-                                   value="@subtotal.ToString("N0")" />
+                                   value="" />
                         </div>
                         <div class="ts-pos-money-row" id="cashChangeRow">
                             <span>Change:</span>
@@ -737,7 +741,7 @@
             const discount = (usePoints && memberPoints > 0)
                 ? Math.min(memberPoints * pointRate, subtotal + tax)
                 : 0;
-            return subtotal + tax - discount;
+            return Math.max(0, subtotal + tax - discount);
         }
 
         function recalc() {
