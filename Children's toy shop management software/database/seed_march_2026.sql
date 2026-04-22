@@ -1,3 +1,6 @@
+USE ToyshopDB_MVC;
+GO
+
 SET NOCOUNT ON;
 GO
 
@@ -16,6 +19,8 @@ BEGIN TRY
     ------------------------------------------------------------ */
     IF COL_LENGTH('dbo.Products', 'Description') IS NULL
         ALTER TABLE dbo.Products ADD [Description] NVARCHAR(500) NULL;
+    IF COL_LENGTH('dbo.Products', 'ImagePath') IS NULL
+        ALTER TABLE dbo.Products ADD [ImagePath] NVARCHAR(260) NULL;
 
     IF COL_LENGTH('dbo.Customers', 'Points') IS NULL
         ALTER TABLE dbo.Customers ADD [Points] INT NOT NULL CONSTRAINT DF_Customers_Points DEFAULT(0);
