@@ -9,6 +9,9 @@
             <div class="ts-card__sub" style="margin-top:6px;">
                 @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")
             </div>
+            <div class="ts-card__sub" style="margin-top:4px; color:rgba(255,255,255,.6);">
+                Người lập đơn: @Model.UserName
+            </div>
         </div>
         <div>
             <button type="button" class="btn btn-outline-light" onclick="window.print()">Print</button>

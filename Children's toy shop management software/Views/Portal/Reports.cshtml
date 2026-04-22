@@ -163,7 +163,10 @@
         {
             <partial name="_BillReceipt" model="reportReceiptVm" />
             <div class="ts-sales-history-actions">
-                <button type="button" class="btn btn-outline-light" onclick="printSalesHistoryReceipt()">Reprint</button>
+                @if (User.IsInRole("Admin"))
+                {
+                    <button type="button" class="btn btn-outline-light" onclick="printSalesHistoryReceipt()">Reprint</button>
+                }
                 <button type="button" class="btn btn-outline-danger" disabled title="Cancel order from history is not enabled yet">Cancel order</button>
             </div>
         }

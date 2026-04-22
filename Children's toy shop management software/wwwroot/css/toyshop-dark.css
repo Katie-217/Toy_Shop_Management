@@ -228,16 +228,45 @@ body::before{
 .ts-user{
   background: var(--ts-glass);
   border: 1px solid var(--ts-border);
-  border-radius: 16px;
-  padding: 14px 12px;
+  border-radius: 14px;
+  padding: 10px 12px;
 }
 .ts-user__row{
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:4px;
 }
-.ts-user__label{ color: var(--ts-muted); font-size:12px; font-weight:600; }
-.ts-user__name{ color: var(--ts-text); font-size:14px; font-weight:700; }
+.ts-user__info{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+.ts-user__label{ color: var(--ts-muted); font-size:11px; font-weight:600; }
+.ts-user__name{ 
+  color: var(--ts-text); 
+  font-size:12px; 
+  font-weight:700; 
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.ts-logout-btn{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  text-decoration:none;
+  color: var(--ts-bad);
+  font-size:12px;
+  font-weight:700;
+  margin-top:6px;
+  padding-top:6px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  transition: opacity .15s ease;
+}
+.ts-logout-btn:hover{ opacity:.8; }
+.ts-logout-btn svg{ flex-shrink:0; }
+.ts-logout-label{ font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
 
 .ts-content{
   padding: 18px 22px 30px 22px;

@@ -9,12 +9,14 @@ using Children_s_toy_shop_management_software.Models.Dashboard;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.IO;
 using System.Text.Json;
 using System.Linq;
 
 namespace Children_s_toy_shop_management_software.Controllers
 {
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class PortalController : Controller
     {
         private readonly ProductsRepository _productsRepo;
@@ -88,7 +90,14 @@ namespace Children_s_toy_shop_management_software.Controllers
         }
 
         [HttpGet]
-        public Task<IActionResult> Pos(string? search, string? tabId) => PosViewAsync(search, tabId);
+        public async Task<IActionResult> Pos(string? search, string? tabId)
+        {
+            if (User.IsInRole("Admin"))
+            {
+                return RedirectToAction("Dashboard");
+            }
+            return await PosViewAsync(search, tabId);
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -104,6 +113,11 @@ namespace Children_s_toy_shop_management_software.Controllers
                 }
 
                 return RedirectToAction(nameof(Pos), new { search = (string?)null, tabId = currentTabId });
+            }
+
+            if (User.IsInRole("Admin"))
+            {
+                return Forbid();
             }
 
             var cart = GetCartFromSession(currentTabId);
@@ -338,7 +352,10 @@ namespace Children_s_toy_shop_management_software.Controllers
                 return View("Pos", vm);
             }
 
-            var userId = 1; 
+            if (User.IsInRole("Admin")) return Forbid();
+
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = string.IsNullOrEmpty(userIdStr) ? 1 : int.Parse(userIdStr);
             var orderId = await _posRepo.SaveOrderAsync(cart.Lines, userId, customerId, grandTotal, pointsUsed);
 
             if (pm == "cash")

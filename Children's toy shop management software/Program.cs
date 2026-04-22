@@ -21,6 +21,15 @@ builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.ReportsR
 builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.InventoryRepository>();
 builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.PosRepository>();
 builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.DashboardRepository>();
+builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.AccountRepository>();
+
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    });
 
 var app = builder.Build();
 
@@ -53,10 +62,11 @@ app.UseRouting();
 
 app.UseSession();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.Run();

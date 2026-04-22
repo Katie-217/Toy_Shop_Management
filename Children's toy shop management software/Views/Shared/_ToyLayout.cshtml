@@ -31,79 +31,88 @@
             </div>
 
             <nav class="ts-nav" aria-label="Main navigation">
-                <a class="ts-nav__link" asp-controller="Portal" asp-action="Dashboard" data-nav="tab" aria-current='@(currentAction == "Dashboard" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3 10.5L12 3L21 10.5V21H3V10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">Dashboard</span>
-                </a>
-                <a class="ts-nav__link" asp-controller="Portal" asp-action="Pos" data-nav="tab" aria-current='@(currentAction == "Pos" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7 7H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M7 17H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M6 3H18C19.1 3 20 3.9 20 5V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V5C4 3.9 4.9 3 6 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">POS</span>
-                </a>
-                <div class="ts-nav-group @((currentAction == "Inventory" || currentAction == "Products") ? "is-open" : "")" data-nav-group="inventory">
-                    <button type="button"
-                            class="ts-nav__link ts-nav__link--parent @((currentAction == "Inventory" || currentAction == "Products") ? "is-active" : "")"
-                            data-nav-parent-toggle
-                            aria-expanded="@((currentAction == "Inventory" || currentAction == "Products") ? "true" : "false")"
-                            aria-controls="navInventorySub"
-                            id="navInventoryParent">
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="ts-nav__link" asp-controller="Portal" asp-action="Dashboard" data-nav="tab" aria-current='@(currentAction == "Dashboard" ? "page" : null)'>
                         <span class="ts-nav__icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2L22 7L12 12L2 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                                <path d="M22 7V17L12 22L2 17V7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M3 10.5L12 3L21 10.5V21H3V10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             </svg>
                         </span>
-                        <span class="ts-nav__text">Inventory</span>
-                        <span class="ts-nav__chevron" aria-hidden="true">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <span class="ts-nav__text">Dashboard</span>
+                    </a>
+                }
+                @if (User.IsInRole("Cashier"))
+                {
+                    <a class="ts-nav__link" asp-controller="Portal" asp-action="Pos" data-nav="tab" aria-current='@(currentAction == "Pos" ? "page" : null)'>
+                        <span class="ts-nav__icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 7H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M7 17H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M6 3H18C19.1 3 20 3.9 20 5V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V5C4 3.9 4.9 3 6 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             </svg>
                         </span>
-                    </button>
-                    <div class="ts-nav__sub" id="navInventorySub" role="group" aria-labelledby="navInventoryParent">
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Products"
-                           data-nav="tab"
-                           aria-current='@(currentAction == "Products" ? "page" : null)'>
-                            <span class="ts-nav__text">Product Entry</span>
-                        </a>
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Inventory"
-                           asp-route-section="purchase"
-                           data-nav="tab"
-                           aria-current='@(currentAction == "Inventory" && invSection == "purchase" ? "page" : null)'>
-                            <span class="ts-nav__text">Stock In</span>
-                        </a>
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Products"
-                           data-nav="tab"
-                           aria-current="@(currentAction == "Products" ? "page" : null)">
-                            <span class="ts-nav__text">Stock Check</span>
-                        </a>
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Inventory"
-                           asp-route-section="sales"
-                           data-nav="tab"
-                           aria-current='@(currentAction == "Inventory" && invSection == "sales" ? "page" : null)'>
-                            <span class="ts-nav__text">Returns</span>
-                        </a>
+                        <span class="ts-nav__text">POS</span>
+                    </a>
+                }
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="ts-nav-group @((currentAction == "Inventory" || currentAction == "Products") ? "is-open" : "")" data-nav-group="inventory">
+                        <button type="button"
+                                class="ts-nav__link ts-nav__link--parent @((currentAction == "Inventory" || currentAction == "Products") ? "is-active" : "")"
+                                data-nav-parent-toggle
+                                aria-expanded="@((currentAction == "Inventory" || currentAction == "Products") ? "true" : "false")"
+                                aria-controls="navInventorySub"
+                                id="navInventoryParent">
+                            <span class="ts-nav__icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L22 7L12 12L2 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                    <path d="M22 7V17L12 22L2 17V7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <span class="ts-nav__text">Inventory</span>
+                            <span class="ts-nav__chevron" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="ts-nav__sub" id="navInventorySub" role="group" aria-labelledby="navInventoryParent">
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="Products"
+                               data-nav="tab"
+                               aria-current='@(currentAction == "Products" ? "page" : null)'>
+                                <span class="ts-nav__text">Product Entry</span>
+                            </a>
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="Inventory"
+                               asp-route-section="purchase"
+                               data-nav="tab"
+                               aria-current='@(currentAction == "Inventory" && invSection == "purchase" ? "page" : null)'>
+                                <span class="ts-nav__text">Stock In</span>
+                            </a>
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="Products"
+                               data-nav="tab"
+                               aria-current="@(currentAction == "Products" ? "page" : null)">
+                                <span class="ts-nav__text">Stock Check</span>
+                            </a>
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="Inventory"
+                               asp-route-section="sales"
+                               data-nav="tab"
+                               aria-current='@(currentAction == "Inventory" && invSection == "sales" ? "page" : null)'>
+                                <span class="ts-nav__text">Returns</span>
+                            </a>
+                        </div>
                     </div>
-                </div>
+                }
                 <a class="ts-nav__link" asp-controller="Portal" asp-action="Reports" data-nav="tab" aria-current='@(currentAction == "Reports" ? "page" : null)'>
                     <span class="ts-nav__icon" aria-hidden="true">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -115,28 +124,31 @@
                     </span>
                     <span class="ts-nav__text">Sales History</span>
                 </a>
-                <a class="ts-nav__link" asp-controller="Portal" asp-action="Customers" data-nav="tab" aria-current='@(currentAction == "Customers" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <path d="M20 21V19C20 17.8954 19.5523 16.8954 18.8284 16.1716" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M16 3.16399C17.6953 3.69373 19 5.25874 19 7C19 8.74126 17.6953 10.3063 16 10.836" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">Customers</span>
-                </a>
-                <a class="ts-nav__link ts-nav__link--admin" asp-controller="Portal" asp-action="Staff" data-nav="tab" aria-current='@(currentAction == "Staff" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <path d="M20 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M18 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">Staff</span>
-                </a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="ts-nav__link" asp-controller="Portal" asp-action="Customers" data-nav="tab" aria-current='@(currentAction == "Customers" ? "page" : null)'>
+                        <span class="ts-nav__icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M20 21V19C20 17.8954 19.5523 16.8954 18.8284 16.1716" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M16 3.16399C17.6953 3.69373 19 5.25874 19 7C19 8.74126 17.6953 10.3063 16 10.836" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="ts-nav__text">Customers</span>
+                    </a>
+                    <a class="ts-nav__link ts-nav__link--admin" asp-controller="Portal" asp-action="Staff" data-nav="tab" aria-current='@(currentAction == "Staff" ? "page" : null)'>
+                        <span class="ts-nav__icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M20 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M18 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="ts-nav__text">Staff</span>
+                    </a>
+                }
             </nav>
 
             <div class="ts-sidebar__footer">
@@ -144,8 +156,18 @@
                     @if (User?.Identity?.IsAuthenticated == true)
                     {
                         <div class="ts-user__row">
-                            <span class="ts-user__label">Hello</span>
-                            <span class="ts-user__name">@User.Identity!.Name</span>
+                            <div class="ts-user__info">
+                                <span class="ts-user__label">Hello,</span>
+                                <span class="ts-user__name">@User.Identity!.Name</span>
+                            </div>
+                            <a asp-controller="Account" asp-action="Logout" class="ts-logout-btn" title="Sign Out">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" />
+                                    <polyline points="16 17 21 12 16 7" />
+                                    <line x1="21" y1="12" x2="9" y2="12" />
+                                </svg>
+                                <span class="ts-logout-label">Logout</span>
+                            </a>
                         </div>
                     }
                     else

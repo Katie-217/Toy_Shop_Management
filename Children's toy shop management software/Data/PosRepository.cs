@@ -11,18 +11,18 @@ public sealed class PosRepository(IDbConnectionFactory db)
         if (string.IsNullOrWhiteSpace(barcode)) return null;
 
         const string sql = @"
-SELECT
-    p.Barcode,
-    p.Name,
-    p.RetailPrice,
-    p.StockQuantity,
-    p.ImagePath,
-    ISNULL(c.Name,'') AS CategoryName,
-    ISNULL(s.Name,'') AS SupplierName
-FROM Products p
-LEFT JOIN Categories c ON p.CategoryId = c.Id
-LEFT JOIN Suppliers s ON p.SupplierId = s.Id
-WHERE ISNULL(p.IsActive,1)=1 AND p.Barcode = @barcode";
+            SELECT
+                p.Barcode,
+                p.Name,
+                p.RetailPrice,
+                p.StockQuantity,
+                p.ImagePath,
+                ISNULL(c.Name,'') AS CategoryName,
+                ISNULL(s.Name,'') AS SupplierName
+            FROM Products p
+            LEFT JOIN Categories c ON p.CategoryId = c.Id
+            LEFT JOIN Suppliers s ON p.SupplierId = s.Id
+            WHERE ISNULL(p.IsActive,1)=1 AND p.Barcode = @barcode";
 
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
@@ -35,21 +35,15 @@ WHERE ISNULL(p.IsActive,1)=1 AND p.Barcode = @barcode";
         return MapProductRow(reader);
     }
 
-    /// <summary>
-    /// Finds a product from scanner/camera/USB input: exact barcode, digits-only, normalized (no dashes/spaces),
-    /// then prefix/suffix match for common EAN/UPC length differences.
-    /// </summary>
     public async Task<PosProductsItemVm?> FindProductByScanCodeAsync(string? scan)
     {
         if (string.IsNullOrWhiteSpace(scan)) return null;
         var raw = scan.Trim();
         if (raw.Length == 0) return null;
 
-        // 1) Exact as stored
+     
         var p = await GetProductByBarcodeAsync(raw);
         if (p != null) return p;
-
-        // 2) Digits only (camera may include spaces or symbols)
         var digits = new string(raw.Where(char.IsDigit).ToArray());
         if (digits.Length > 0 && !string.Equals(digits, raw, StringComparison.Ordinal))
         {
@@ -57,7 +51,6 @@ WHERE ISNULL(p.IsActive,1)=1 AND p.Barcode = @barcode";
             if (p != null) return p;
         }
 
-        // 3) Alphanumeric only (Code128, etc.)
         var alphanum = new string(raw.Where(char.IsLetterOrDigit).ToArray());
         if (alphanum.Length > 0 && !string.Equals(alphanum, raw, StringComparison.OrdinalIgnoreCase))
         {
@@ -67,11 +60,9 @@ WHERE ISNULL(p.IsActive,1)=1 AND p.Barcode = @barcode";
 
         var key = digits.Length > 0 ? digits : alphanum.Length > 0 ? alphanum : raw;
 
-        // 4) Match DB barcode with dashes/spaces stripped
         p = await FindProductByNormalizedBarcodeKeyAsync(key);
         if (p != null) return p;
 
-        // 5) Prefix / superset (e.g. 12 vs 13 digit EAN, missing check digit)
         if (key.Length >= 4)
         {
             p = await FindProductByBarcodePrefixOrSupersetAsync(key);
@@ -85,19 +76,19 @@ WHERE ISNULL(p.IsActive,1)=1 AND p.Barcode = @barcode";
         if (string.IsNullOrWhiteSpace(key)) return null;
 
         const string sql = @"
-SELECT TOP 1
-    p.Barcode,
-    p.Name,
-    p.RetailPrice,
-    p.StockQuantity,
-    p.ImagePath,
-    ISNULL(c.Name,'') AS CategoryName,
-    ISNULL(s.Name,'') AS SupplierName
-FROM Products p
-LEFT JOIN Categories c ON p.CategoryId = c.Id
-LEFT JOIN Suppliers s ON p.SupplierId = s.Id
-WHERE ISNULL(p.IsActive,1)=1
-AND REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') = @key";
+            SELECT TOP 1
+                p.Barcode,
+                p.Name,
+                p.RetailPrice,
+                p.StockQuantity,
+                p.ImagePath,
+                ISNULL(c.Name,'') AS CategoryName,
+                ISNULL(s.Name,'') AS SupplierName
+            FROM Products p
+            LEFT JOIN Categories c ON p.CategoryId = c.Id
+            LEFT JOIN Suppliers s ON p.SupplierId = s.Id
+            WHERE ISNULL(p.IsActive,1)=1
+            AND REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') = @key";
 
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
@@ -112,29 +103,29 @@ AND REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') = @key";
     private async Task<PosProductsItemVm?> FindProductByBarcodePrefixOrSupersetAsync(string key)
     {
         const string sql = @"
-SELECT TOP 1
-    p.Barcode,
-    p.Name,
-    p.RetailPrice,
-    p.StockQuantity,
-    p.ImagePath,
-    ISNULL(c.Name,'') AS CategoryName,
-    ISNULL(s.Name,'') AS SupplierName
-FROM Products p
-LEFT JOIN Categories c ON p.CategoryId = c.Id
-LEFT JOIN Suppliers s ON p.SupplierId = s.Id
-WHERE ISNULL(p.IsActive,1)=1
-AND (
-    (LEN(@key) >= 4 AND p.Barcode LIKE @key + N'%')
-    OR (LEN(@key) >= 4 AND @key LIKE p.Barcode + N'%')
-    OR (LEN(@key) >= 4 AND REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') LIKE @key + N'%')
-    OR (LEN(@key) >= 4 AND @key LIKE REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') + N'%')
-)
-ORDER BY
-    CASE WHEN REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') = @key THEN 0 ELSE 1 END,
-    CASE WHEN p.Barcode = @key THEN 0 ELSE 1 END,
-    ABS(LEN(REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'')) - LEN(@key)),
-    LEN(p.Barcode)";
+            SELECT TOP 1
+                p.Barcode,
+                p.Name,
+                p.RetailPrice,
+                p.StockQuantity,
+                p.ImagePath,
+                ISNULL(c.Name,'') AS CategoryName,
+                ISNULL(s.Name,'') AS SupplierName
+            FROM Products p
+            LEFT JOIN Categories c ON p.CategoryId = c.Id
+            LEFT JOIN Suppliers s ON p.SupplierId = s.Id
+            WHERE ISNULL(p.IsActive,1)=1
+            AND (
+                (LEN(@key) >= 4 AND p.Barcode LIKE @key + N'%')
+                OR (LEN(@key) >= 4 AND @key LIKE p.Barcode + N'%')
+                OR (LEN(@key) >= 4 AND REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') LIKE @key + N'%')
+                OR (LEN(@key) >= 4 AND @key LIKE REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') + N'%')
+            )
+            ORDER BY
+                CASE WHEN REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') = @key THEN 0 ELSE 1 END,
+                CASE WHEN p.Barcode = @key THEN 0 ELSE 1 END,
+                ABS(LEN(REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'')) - LEN(@key)),
+                LEN(p.Barcode)";
 
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
@@ -160,17 +151,12 @@ ORDER BY
         };
     }
 
-    /// <summary>Escape %, _, [ for SQL LIKE pattern.</summary>
     private static string EscapeSqlLike(string s)
     {
         if (string.IsNullOrEmpty(s)) return s;
         return s.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]");
     }
 
-    /// <summary>
-    /// Tìm sản phẩm POS — cùng logic với WinForms <c>UcPos.SearchProducts</c>:
-    /// từ khóa khớp Barcode hoặc Name (LIKE %%), tùy chọn lọc đúng tên Category / Supplier.
-    /// </summary>
     public Task<List<PosProductsItemVm>> SearchProductsAsync(string? keyword)
         => SearchProductsAsync(keyword, null, null);
 
@@ -182,22 +168,22 @@ ORDER BY
         var sup = string.IsNullOrWhiteSpace(supplierName) ? null : supplierName.Trim();
 
         var sql = @"
-SELECT
-    p.Barcode,
-    p.Name,
-    p.RetailPrice,
-    p.StockQuantity,
-    p.ImagePath,
-    ISNULL(c.Name,'') AS CategoryName,
-    ISNULL(s.Name,'') AS SupplierName
-FROM Products p
-LEFT JOIN Categories c ON p.CategoryId = c.Id
-LEFT JOIN Suppliers s ON p.SupplierId = s.Id
-WHERE ISNULL(p.IsActive, 1) = 1
-  AND (@q = N'' OR LOWER(p.Barcode) LIKE LOWER(@like) OR LOWER(p.Name) LIKE LOWER(@like))
-  AND (@cat IS NULL OR c.Name = @cat)
-  AND (@sup IS NULL OR s.Name = @sup)
-ORDER BY p.Name";
+        SELECT
+            p.Barcode,
+            p.Name,
+            p.RetailPrice,
+            p.StockQuantity,
+            p.ImagePath,
+            ISNULL(c.Name,'') AS CategoryName,
+            ISNULL(s.Name,'') AS SupplierName
+        FROM Products p
+        LEFT JOIN Categories c ON p.CategoryId = c.Id
+        LEFT JOIN Suppliers s ON p.SupplierId = s.Id
+        WHERE ISNULL(p.IsActive, 1) = 1
+        AND (@q = N'' OR LOWER(p.Barcode) LIKE LOWER(@like) OR LOWER(p.Name) LIKE LOWER(@like))
+        AND (@cat IS NULL OR c.Name = @cat)
+        AND (@sup IS NULL OR s.Name = @sup)
+        ORDER BY p.Name";
 
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
@@ -224,9 +210,9 @@ ORDER BY p.Name";
         }
 
         const string sql = @"
-SELECT TOP 1 CustomerID, Fullname, Points
-FROM Customers
-WHERE PhoneNumber = @Phone AND IsMember = 1";
+            SELECT TOP 1 CustomerID, Fullname, Points
+            FROM Customers
+            WHERE PhoneNumber = @Phone AND IsMember = 1";
 
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
@@ -260,9 +246,9 @@ WHERE PhoneNumber = @Phone AND IsMember = 1";
         try
         {
             const string insertOrderSql = @"
-INSERT INTO Orders (OrderDate, UserID, CustomerID, TotalAmount)
-VALUES (@OrderDate, @UserID, @CustomerID, @TotalAmount);
-SELECT CAST(SCOPE_IDENTITY() AS int);";
+                INSERT INTO Orders (OrderDate, UserID, CustomerID, TotalAmount)
+                VALUES (@OrderDate, @UserID, @CustomerID, @TotalAmount);
+                SELECT CAST(SCOPE_IDENTITY() AS int);";
 
             await using var cmdOrder = new SqlCommand(insertOrderSql, conn, tx);
             cmdOrder.Parameters.AddWithValue("@OrderDate", DateTime.Now);
@@ -275,7 +261,6 @@ SELECT CAST(SCOPE_IDENTITY() AS int);";
 
             foreach (var item in items)
             {
-                // Resolve ProductID by barcode.
                 const string resolveSql = @"SELECT TOP 1 ProductID FROM Products WHERE Barcode = @Barcode";
                 await using var resolveCmd = new SqlCommand(resolveSql, conn, tx);
                 resolveCmd.Parameters.AddWithValue("@Barcode", item.Code);
@@ -283,7 +268,6 @@ SELECT CAST(SCOPE_IDENTITY() AS int);";
                 var productId = pidObj == null || pidObj == DBNull.Value ? 0 : Convert.ToInt32(pidObj);
                 if (productId <= 0) throw new InvalidOperationException($"Product not found for barcode '{item.Code}'.");
 
-                // Check stock.
                 const string stockSql = @"SELECT StockQuantity FROM Products WHERE ProductID = @Id";
                 await using var stockCmd = new SqlCommand(stockSql, conn, tx);
                 stockCmd.Parameters.AddWithValue("@Id", productId);
@@ -293,8 +277,8 @@ SELECT CAST(SCOPE_IDENTITY() AS int);";
                     throw new InvalidOperationException($"Insufficient stock for '{item.Name}'. Stock={stock}, Qty={item.Qty}");
 
                 const string insertDetailSql = @"
-INSERT INTO OrderDetails (OrderID, ProductID, Quantity, UnitPrice)
-VALUES (@OrderID, @ProductID, @Quantity, @UnitPrice);";
+                    INSERT INTO OrderDetails (OrderID, ProductID, Quantity, UnitPrice)
+                    VALUES (@OrderID, @ProductID, @Quantity, @UnitPrice);";
                 await using var detailCmd = new SqlCommand(insertDetailSql, conn, tx);
                 detailCmd.Parameters.AddWithValue("@OrderID", orderId);
                 detailCmd.Parameters.AddWithValue("@ProductID", productId);
@@ -331,27 +315,29 @@ VALUES (@OrderID, @ProductID, @Quantity, @UnitPrice);";
     public async Task<PosReceiptVm?> GetReceiptAsync(int orderId)
     {
         const string orderSql = @"
-SELECT
-    o.OrderID,
-    o.OrderDate,
-    c.Fullname AS CustomerName,
-    c.PhoneNumber AS CustomerPhone,
-    o.TotalAmount
-FROM Orders o
-LEFT JOIN Customers c ON o.CustomerID = c.CustomerID
-WHERE o.OrderID = @id";
+            SELECT
+                o.OrderID,
+                o.OrderDate,
+                c.Fullname AS CustomerName,
+                c.PhoneNumber AS CustomerPhone,
+                o.TotalAmount,
+                u.FullName AS CreatedBy
+            FROM Orders o
+            LEFT JOIN Customers c ON o.CustomerID = c.CustomerID
+            LEFT JOIN Users u ON o.UserID = u.UserID
+            WHERE o.OrderID = @id";
 
         const string detailsSql = @"
-SELECT
-    od.ProductID,
-    ISNULL(p.Barcode,'') AS ProductCode,
-    ISNULL(p.Name,'') AS ProductName,
-    od.Quantity,
-    od.UnitPrice,
-    (od.Quantity * od.UnitPrice) AS LineTotal
-FROM OrderDetails od
-LEFT JOIN Products p ON od.ProductID = p.ProductID
-WHERE od.OrderID = @id";
+            SELECT
+                od.ProductID,
+                ISNULL(p.Barcode,'') AS ProductCode,
+                ISNULL(p.Name,'') AS ProductName,
+                od.Quantity,
+                od.UnitPrice,
+                (od.Quantity * od.UnitPrice) AS LineTotal
+            FROM OrderDetails od
+            LEFT JOIN Products p ON od.ProductID = p.ProductID
+            WHERE od.OrderID = @id";
 
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
@@ -368,11 +354,10 @@ WHERE od.OrderID = @id";
             OrderDate = reader["OrderDate"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["OrderDate"]),
             CustomerName = reader["CustomerName"]?.ToString(),
             CustomerPhone = reader["CustomerPhone"]?.ToString(),
+            UserName = reader["CreatedBy"]?.ToString() ?? "Unknown",
             GrandTotal = reader["TotalAmount"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["TotalAmount"])
         };
 
-        // second query for lines + compute subtotal/discount is not stored in DB currently,
-        // so we compute subtotal from lines and set Discount = subtotal - grand total.
         await using var cmd2 = new SqlCommand(detailsSql, conn);
         cmd2.Parameters.AddWithValue("@id", orderId);
         await using var reader2 = await cmd2.ExecuteReaderAsync();

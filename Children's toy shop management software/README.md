@@ -139,6 +139,25 @@ dotnet run
 
 Mo trinh duyet voi URL duoc in ra terminal (thuong la `https://localhost:xxxx`).
 
+### Thong tin dang nhap (RBAC)
+
+He thong hien tai chia lam 2 vai tro:
+
+1. **Admin (Quan tri vien)**:
+   - **Username**: `admin`
+   - **Password**: `admin@`
+   - **Quyen**: Quan ly moi thu (Dashboard, San pham, Ton kho, Nhan vien, Khach hang, Bao cao). Khong duoc truy cap POS.
+
+2. **Staff (Thu ngan)**:
+   - **Username**: Ma nhan vien (vidu: `3`, `4`,...)
+   - **Password**: Ma nhan vien + 2 so ngau nhien (vidu: `312`, `458`,...). 
+   - **Quyen**: Su dung POS va xem lich su ban hang. Khong duoc quan ly he thong.
+   - **Vi du thuc te**: 
+     - Nhan vien: `Le Hoang Nam`
+     - Username: `3`
+     - Password: Xem trong bang `Users` (vidu: `368`)
+   - *Luu y*: Mat khau duoc tu dong tao khi chay script seed hoac khi nhan vien moi duoc them vao voi chuc danh 'Cashier'. Ban co the mo SSMS, xem bang `dbo.Users` de lay mat khau chinh xac cua tung staff.
+
 ## 5) Cach chay script seed de lay data demo
 
 File script: `database/seed_march_2026.sql`

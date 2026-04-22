@@ -1,5 +1,12 @@
 SET NOCOUNT ON;
-SET XACT_ABORT ON;
+GO
+
+-- Clean up temp tables if they exist (to allow multiple runs in same session)
+IF OBJECT_ID('tempdb..#CategorySeed') IS NOT NULL DROP TABLE #CategorySeed;
+IF OBJECT_ID('tempdb..#SupplierSeed') IS NOT NULL DROP TABLE #SupplierSeed;
+IF OBJECT_ID('tempdb..#ProductSeed') IS NOT NULL DROP TABLE #ProductSeed;
+IF OBJECT_ID('tempdb..#EmployeeSeed') IS NOT NULL DROP TABLE #EmployeeSeed;
+IF OBJECT_ID('tempdb..#SeedEmployeeMap') IS NOT NULL DROP TABLE #SeedEmployeeMap;
 
 BEGIN TRY
     BEGIN TRAN;
@@ -24,6 +31,57 @@ BEGIN TRY
         ALTER TABLE dbo.Orders ADD [Status] NVARCHAR(50) NULL;
     IF COL_LENGTH('dbo.Orders', 'PaymentMethod') IS NULL
         ALTER TABLE dbo.Orders ADD [PaymentMethod] NVARCHAR(50) NULL;
+
+    /* 2026-04-14: Ensure Users table exists for Auth & RBAC */
+    IF OBJECT_ID('dbo.Users', 'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.Users (
+            UserID INT IDENTITY(1,1) PRIMARY KEY,
+            Username NVARCHAR(50) NOT NULL UNIQUE,
+            PasswordHash NVARCHAR(255) NOT NULL,
+            FullName NVARCHAR(150) NOT NULL,
+            Role NVARCHAR(20) NOT NULL,
+            EmployeeID INT NULL,
+            CreatedAt DATETIME DEFAULT GETDATE()
+        );
+    END
+    ELSE
+    BEGIN
+        -- Robustness: Check Role column type if it exists
+        IF TYPE_NAME(COLUMNPROPERTY(OBJECT_ID('dbo.Users'), 'Role', 'SystemType')) = 'int'
+        BEGIN
+            -- Drop constraints that might block the ALTER COLUMN
+            -- (Default constraints, Check constraints)
+            DECLARE @DropSql NVARCHAR(MAX) = N'';
+            SELECT @DropSql += N'ALTER TABLE dbo.Users DROP CONSTRAINT ' + QUOTENAME(d.name) + N';'
+            FROM sys.default_constraints d
+            WHERE d.parent_object_id = OBJECT_ID('dbo.Users')
+              AND d.parent_column_id = COLUMNPROPERTY(object_id('dbo.Users'), 'Role', 'ColumnId');
+
+            SELECT @DropSql += N'ALTER TABLE dbo.Users DROP CONSTRAINT ' + QUOTENAME(c.name) + N';'
+            FROM sys.check_constraints c
+            WHERE c.parent_object_id = OBJECT_ID('dbo.Users')
+              AND c.parent_column_id = COLUMNPROPERTY(object_id('dbo.Users'), 'Role', 'ColumnId');
+
+            IF LEN(@DropSql) > 0 EXEC sp_executesql @DropSql;
+
+            -- Now we can safely alter the column
+            ALTER TABLE dbo.Users ALTER COLUMN Role NVARCHAR(20) NOT NULL;
+        END
+
+        -- Robustness: Ensure EmployeeID is NULLABLE (for system accounts like admin)
+        IF COLUMNPROPERTY(OBJECT_ID('dbo.Users'), 'EmployeeID', 'AllowsNull') = 0
+        BEGIN
+            ALTER TABLE dbo.Users ALTER COLUMN EmployeeID INT NULL;
+        END
+    END
+
+    -- Seed default Admin if missing
+    IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Username = 'admin')
+    BEGIN
+        INSERT INTO dbo.Users (Username, PasswordHash, FullName, Role)
+        VALUES ('admin', 'admin@', 'System Administrator', 'Admin');
+    END;
 
     IF OBJECT_ID('dbo.StockMovementHeaders', 'U') IS NULL
     BEGIN
@@ -339,7 +397,7 @@ BEGIN TRY
     (N'Hoang Minh Khang',N'0910000030',N'49 Tran Quang Khai, District 1, HCMC',0,1);
 
     /* ------------------------------------------------------------
-       7) March order data (10 orders/day, all month)
+       7) Spring 2026 order data (March - May 2026)
     ------------------------------------------------------------ */
     DECLARE @Users TABLE (RN INT IDENTITY(1,1), UserID INT);
     IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL
@@ -366,7 +424,7 @@ BEGIN TRY
     DECLARE @d DATE = '2026-03-01';
     DECLARE @globalNo INT = 0;
 
-    WHILE @d <= '2026-03-31'
+    WHILE @d <= '2026-05-31'
     BEGIN
         DECLARE @n INT = 1;
         WHILE @n <= 10
@@ -458,12 +516,12 @@ BEGIN TRY
        9) Inventory import records + return records
     ------------------------------------------------------------ */
     DECLARE @batch INT = 1;
-    WHILE @batch <= 10
+    WHILE @batch <= 25
     BEGIN
         DECLARE @inHeaderId INT;
         DECLARE @inNote NVARCHAR(255) = N'PO batch import #' + CAST(@batch AS NVARCHAR(20));
-        DECLARE @inCreatedAt DATETIME = DATEADD(DAY, (@batch * 2) - 2, CAST('2026-03-01' AS DATETIME));
-        DECLARE @inReceipt NVARCHAR(260) = N'/uploads/invoices/po-202603-' + RIGHT('00' + CAST(@batch AS NVARCHAR(2)), 2) + N'.pdf';
+        DECLARE @inCreatedAt DATETIME = DATEADD(DAY, (@batch * 3) - 3, CAST('2026-03-01' AS DATETIME));
+        DECLARE @inReceipt NVARCHAR(260) = N'/uploads/invoices/po-2026-batch-' + RIGHT('00' + CAST(@batch AS NVARCHAR(2)), 2) + N'.pdf';
         DECLARE @sqlInsertInHeader NVARCHAR(MAX) = N'
             INSERT INTO dbo.StockMovementHeaders
                 (MovementType, AffectsStock, Note, CreatedByUserID, CreatedAt, ReceiptAttachment, PreparedBy, ApprovedBy)
@@ -503,14 +561,14 @@ BEGIN TRY
     END;
 
     DECLARE @returnBatch INT = 1;
-    WHILE @returnBatch <= 8
+    WHILE @returnBatch <= 15
     BEGIN
         DECLARE @retHeaderId INT;
         DECLARE @retMethod NVARCHAR(20) = CASE WHEN (@returnBatch % 2) = 0 THEN N'VNPay' ELSE N'Cash' END;
 
         DECLARE @retNote NVARCHAR(255) = N'Defective product return #' + CAST(@returnBatch AS NVARCHAR(20));
-        DECLARE @retCreatedAt DATETIME = DATEADD(DAY, (@returnBatch * 3), CAST('2026-03-01' AS DATETIME));
-        DECLARE @retEvidence NVARCHAR(260) = N'/uploads/returns/defect-202603-' + RIGHT('00' + CAST(@returnBatch AS NVARCHAR(2)), 2) + N'.jpg';
+        DECLARE @retCreatedAt DATETIME = DATEADD(DAY, (@returnBatch * 5), CAST('2026-03-01' AS DATETIME));
+        DECLARE @retEvidence NVARCHAR(260) = N'/uploads/returns/defect-2026-batch-' + RIGHT('00' + CAST(@returnBatch AS NVARCHAR(2)), 2) + N'.jpg';
         DECLARE @retRefundAmount DECIMAL(18,2) = (450000 + (@returnBatch * 55000));
         DECLARE @sqlInsertOutHeader NVARCHAR(MAX) = N'
             INSERT INTO dbo.StockMovementHeaders
