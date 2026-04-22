@@ -7,6 +7,7 @@ namespace Children_s_toy_shop_management_software.Data;
 
 public sealed class ProductsRepository(IDbConnectionFactory db)
 {
+    private const string BuildNote = "barcode image branch update";
     public async Task<(List<ProductVm> items, List<CategoryVm> categories, List<string> ages)>
         GetProductsAsync(string? search, int? categoryId, string? ageRange)
     {
