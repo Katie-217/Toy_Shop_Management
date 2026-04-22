@@ -59,11 +59,11 @@
                 }
                 @if (User.IsInRole("Admin"))
                 {
-                    <div class="ts-nav-group @((currentAction == "Inventory" || currentAction == "Products") ? "is-open" : "")" data-nav-group="inventory">
+                    <div class="ts-nav-group @((currentAction == "Inventory" || currentAction == "Products" || currentAction == "StockCheck") ? "is-open" : "")" data-nav-group="inventory">
                         <button type="button"
-                                class="ts-nav__link ts-nav__link--parent @((currentAction == "Inventory" || currentAction == "Products") ? "is-active" : "")"
+                                class="ts-nav__link ts-nav__link--parent @((currentAction == "Inventory" || currentAction == "Products" || currentAction == "StockCheck") ? "is-active" : "")"
                                 data-nav-parent-toggle
-                                aria-expanded="@((currentAction == "Inventory" || currentAction == "Products") ? "true" : "false")"
+                                aria-expanded="@((currentAction == "Inventory" || currentAction == "Products" || currentAction == "StockCheck") ? "true" : "false")"
                                 aria-controls="navInventorySub"
                                 id="navInventoryParent">
                             <span class="ts-nav__icon" aria-hidden="true">
@@ -97,9 +97,9 @@
                             </a>
                             <a class="ts-nav__link ts-nav__link--sub"
                                asp-controller="Portal"
-                               asp-action="Products"
+                               asp-action="StockCheck"
                                data-nav="tab"
-                               aria-current="@(currentAction == "Products" ? "page" : null)">
+                               aria-current='@(currentAction == "StockCheck" ? "page" : null)'>
                                 <span class="ts-nav__text">Stock Check</span>
                             </a>
                             <a class="ts-nav__link ts-nav__link--sub"
@@ -107,7 +107,7 @@
                                asp-action="Inventory"
                                asp-route-section="sales"
                                data-nav="tab"
-                               aria-current='@(currentAction == "Inventory" && invSection == "sales" ? "page" : null)'>
+                               aria-current='@(currentAction == "Inventory" && qSection == "sales" ? "page" : null)'>
                                 <span class="ts-nav__text">Returns</span>
                             </a>
                         </div>
@@ -428,8 +428,8 @@
                             a.removeAttribute('aria-current');
                             return;
                         }
-                        const invPath = /\/inventory$/i.test(u.pathname);
-                        if (invPath) {
+                        const isInvPath = /\/inventory$/i.test(u.pathname);
+                        if (isInvPath) {
                             const secA = (u.searchParams.get('section') || 'purchase').toLowerCase();
                             const secCur = (cur.searchParams.get('section') || 'purchase').toLowerCase();
                             if (secA === secCur) {
@@ -448,7 +448,7 @@
 
             function syncNavGroups() {
                 const cur = new URL(window.location.href);
-                const isInv = /\/inventory$/i.test(cur.pathname) || /\/products$/i.test(cur.pathname);
+                const isInv = /\/inventory$/i.test(cur.pathname) || /\/products$/i.test(cur.pathname) || /\/stockcheck$/i.test(cur.pathname);
                 document.querySelectorAll('[data-nav-group="inventory"]').forEach(function (g) {
                     const btn = g.querySelector('[data-nav-parent-toggle]');
                     if (isInv) {
@@ -467,7 +467,8 @@
                 });
             }
 
-            function swapNavContent(href) {
+            function swapNavContent(href, opts) {
+                const options = opts || {};
                 const fetchUrl = new URL(href, window.location.origin);
                 return fetch(fetchUrl.toString(), {
                     headers: {
@@ -479,7 +480,7 @@
                     if (!res.ok) throw new Error('nav fetch failed');
                     return res.text();
                 }).then(function (html) {
-                    mountFragmentHtml(html, { preserveScroll: false });
+                    mountFragmentHtml(html, { preserveScroll: !!options.smooth });
                     const root = main.querySelector('#ts-fragment-root');
                     if (root && root.dataset.pageTitle) {
                         document.title = root.dataset.pageTitle + ' - Toy Shop Management';
@@ -505,23 +506,29 @@
                 body.classList.remove('ts-mobile-nav-open');
             });
 
-            document.querySelectorAll('a[data-nav="tab"]').forEach(function (a) {
-                a.addEventListener('click', function (e) {
-                    if (e.defaultPrevented) return;
-                    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-                    const href = a.getAttribute('href');
-                    if (!href || href === '#') return;
-                    e.preventDefault();
-                    swapNavContent(href).then(function () {
-                        const clean = new URL(href, window.location.origin);
-                        history.pushState({ spa: true }, '', clean.pathname + clean.search);
-                        updateNavActive();
-                        syncNavGroups();
-                        body.classList.remove('ts-mobile-nav-open');
-                        window.scrollTo(0, 0);
-                    }).catch(function () {
-                        window.location.href = href;
-                    });
+            document.addEventListener('click', function (e) {
+                const a = e.target.closest('a[data-nav="tab"]');
+                if (!a) return;
+                if (e.defaultPrevented) return;
+                if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+                
+                const href = a.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('javascript:')) return;
+                
+                const isSmooth = a.hasAttribute('data-nav-smooth');
+                
+                e.preventDefault();
+                swapNavContent(href, { smooth: isSmooth }).then(function () {
+                    const clean = new URL(href, window.location.origin);
+                    history.pushState({ spa: true }, '', clean.pathname + clean.search);
+                    updateNavActive();
+                    syncNavGroups();
+                    if (document.body.classList.contains('ts-mobile-nav-open')) {
+                        document.body.classList.remove('ts-mobile-nav-open');
+                    }
+                    if (!isSmooth) window.scrollTo(0, 0);
+                }).catch(function () {
+                    window.location.href = href;
                 });
             });
 

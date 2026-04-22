@@ -22,6 +22,7 @@ builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.Inventor
 builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.PosRepository>();
 builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.DashboardRepository>();
 builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.AccountRepository>();
+builder.Services.AddScoped<Children_s_toy_shop_management_software.Data.BarcodeService>();
 
 builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -68,5 +69,36 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
+
+// Automated Barcode Generation Task
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var productsRepo = services.GetRequiredService<Children_s_toy_shop_management_software.Data.ProductsRepository>();
+    var barcodeService = services.GetRequiredService<Children_s_toy_shop_management_software.Data.BarcodeService>();
+    var env = services.GetRequiredService<IWebHostEnvironment>();
+
+    var (products, _, _) = await productsRepo.GetProductsAsync(null, null, null);
+    var barcodeDir = Path.Combine(env.WebRootPath, "uploads", "products", "barcodes");
+    
+    if (!Directory.Exists(barcodeDir)) Directory.CreateDirectory(barcodeDir);
+
+    foreach (var p in products.Where(x => string.IsNullOrEmpty(x.BarcodeImagePath)))
+    {
+        try 
+        {
+            var barcodeValue = string.IsNullOrWhiteSpace(p.Barcode) ? p.Id.ToString("D8") : p.Barcode;
+            var svg = barcodeService.GenerateCode128Svg(barcodeValue);
+            var fileName = $"bc_{p.Id}.svg";
+            var filePath = Path.Combine(barcodeDir, fileName);
+            await File.WriteAllTextAsync(filePath, svg);
+            await productsRepo.UpdateBarcodePathAsync(p.Id, $"/uploads/products/barcodes/{fileName}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating barcode for product {p.Id}: {ex.Message}");
+        }
+    }
+}
 
 app.Run();

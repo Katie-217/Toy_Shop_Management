@@ -27,6 +27,7 @@ SELECT
     p.RetailPrice,
     p.StockQuantity,
     p.ImagePath,
+    p.BarcodeImagePath,
     p.IsActive
 FROM Products p
 LEFT JOIN Categories c ON p.CategoryId = c.Id
@@ -61,6 +62,7 @@ ORDER BY p.Name";
                 SellPrice = reader["RetailPrice"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["RetailPrice"]),
                 Quantity = reader["StockQuantity"] == DBNull.Value ? 0 : Convert.ToInt32(reader["StockQuantity"]),
                 ImagePath = reader["ImagePath"] == DBNull.Value ? null : reader["ImagePath"]?.ToString(),
+                BarcodeImagePath = reader["BarcodeImagePath"] == DBNull.Value ? null : reader["BarcodeImagePath"]?.ToString(),
                 IsActive = reader["IsActive"] != DBNull.Value && Convert.ToBoolean(reader["IsActive"])
             });
         }
@@ -81,6 +83,7 @@ SELECT TOP 1
     p.RetailPrice,
     p.StockQuantity,
     p.ImagePath,
+    p.BarcodeImagePath,
     p.IsActive
 FROM Products p
 LEFT JOIN Categories c ON p.CategoryId = c.Id
@@ -106,6 +109,7 @@ WHERE p.ProductID = @id";
             SellPrice = reader["RetailPrice"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["RetailPrice"]),
             Quantity = reader["StockQuantity"] == DBNull.Value ? 0 : Convert.ToInt32(reader["StockQuantity"]),
             ImagePath = reader["ImagePath"] == DBNull.Value ? null : reader["ImagePath"]?.ToString(),
+            BarcodeImagePath = reader["BarcodeImagePath"] == DBNull.Value ? null : reader["BarcodeImagePath"]?.ToString(),
             IsActive = reader["IsActive"] != DBNull.Value && Convert.ToBoolean(reader["IsActive"])
         };
     }
@@ -164,6 +168,17 @@ WHERE ProductID = @Id;";
 
         await cmd2.ExecuteNonQueryAsync();
         return form.ProductId.Value;
+    }
+
+    public async Task UpdateBarcodePathAsync(int productId, string path)
+    {
+        const string sql = "UPDATE Products SET BarcodeImagePath = @path WHERE ProductID = @id";
+        await using var conn = db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@path", (object?)path ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@id", productId);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     public async Task DeleteAsync(int productId)

@@ -2,20 +2,27 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/tabs/Products/products.css" asp-append-version="true" />
+    <style>
+        .ts-products-table thead th {
+            background: #101a38 !important;
+            color: #fff !important;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 10px 16px;
+            border: none;
+            font-weight: 700;
+        }
+    </style>
 }
 
-<div class="ts-shell-page">
+<div class="ts-shell-page ts-shell-page--products">
     <div class="ts-shell-toolbar">
-        <form method="get"
-              asp-action="Products"
-              asp-controller="Portal">
+        <form id="productFilterForm" method="get" asp-action="Products" asp-controller="Portal" data-spa-form="1">
             <div class="ts-shell-toolbar__row">
                 <div style="flex:1; min-width:240px;">
                     <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Search</label>
-                    <input class="form-control"
-                           name="search"
-                           value="@Model.Search"
-                           placeholder="Name or barcode" />
+                    <input id="productSearchInput" class="form-control" name="search" value="@Model.Search" placeholder="Name or barcode" />
                 </div>
 
                 <div style="min-width:190px;">
@@ -42,151 +49,339 @@
 
                 <div class="d-flex gap-2 flex-wrap">
                     <button type="submit" class="btn btn-primary">Filter</button>
-                    <a class="btn btn-outline-light"
-                       asp-action="Products"
-                       asp-controller="Portal">
-                        Reset
-                    </a>
+                    <a class="btn btn-outline-light" asp-action="Products" asp-controller="Portal" data-nav="tab">Reset</a>
                 </div>
             </div>
         </form>
     </div>
 
-    <div class="ts-shell-layout">
+    <div class="ts-shell-layout ts-products-layout">
         <div class="ts-shell-main ts-card" style="padding:14px;">
-        @if (!string.IsNullOrWhiteSpace(Model.Error))
-        {
-            <div class="alert alert-danger mb-3">@Model.Error</div>
-        }
+            @if (!string.IsNullOrWhiteSpace(Model.Error))
+            {
+                <div class="alert alert-danger mb-3">@Model.Error</div>
+            }
 
-        <div class="ts-table-scroll">
-            <table class="table table-dark table-sm align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th style="width:70px;">ID</th>
-                        <th>Name</th>
-                        <th style="width:150px;">Category</th>
-                        <th style="width:120px;">Age</th>
-                        <th style="width:120px;">Price</th>
-                        <th style="width:90px;">Stock</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var p in Model.Products)
-                {
-                    var isSelected = Model.SelectedProduct?.Id == p.Id;
-                    <tr class="@(isSelected ? "table-primary" : "")">
-                        <td>
-                            <a asp-action="Products"
-                               asp-controller="Portal"
-                               asp-route-id="@p.Id"
-                               asp-route-search="@Model.Search"
-                               asp-route-categoryId="@Model.CategoryId"
-                               asp-route-ageRange="@Model.AgeRange"
-                               class="text-decoration-none text-light">
-                                @p.Id
-                            </a>
-                        </td>
-                        <td>@p.Name</td>
-                        <td>@p.CategoryName</td>
-                        <td>@p.AgeRange</td>
-                        <td>@p.SellPrice.ToString("N0") ₫</td>
-                        <td>@p.Quantity</td>
-                    </tr>
-                }
-                @if (Model.Products.Count == 0)
-                {
-                    <tr>
-                        <td colspan="6" style="color:rgba(255,255,255,.75);">No products found.</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-        </div>
-
-    <div class="ts-shell-side ts-card" style="padding:14px;">
-        <div class="ts-card__title" style="margin-bottom:6px;">
-            @(Model.Form.ProductId.HasValue ? "Edit product" : "Create product")
-        </div>
-        <div style="margin-bottom:12px;"></div>
-
-        <form method="post"
-              asp-action="ProductsSave"
-              asp-controller="Portal"
-              asp-route-search="@Model.Search"
-              asp-route-categoryId="@Model.CategoryId"
-              asp-route-ageRange="@Model.AgeRange"
-              enctype="multipart/form-data">
-            <input type="hidden" asp-for="Form.ProductId" />
-            <input type="hidden" asp-for="Form.ExistingImagePath" />
-
-            <div class="row g-2">
-                <div class="col-md-6">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Barcode</label>
-                    <input class="form-control" asp-for="Form.Barcode" />
-                </div>
-                <div class="col-md-6">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Name</label>
-                    <input class="form-control" asp-for="Form.Name" />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Category</label>
-                    <input class="form-control" asp-for="Form.CategoryName" />
-                </div>
-                <div class="col-md-6">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Age range</label>
-                    <input class="form-control" asp-for="Form.AgeRange" />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Import price</label>
-                    <input class="form-control" asp-for="Form.ImportPrice" type="number" step="0.01" />
-                </div>
-                <div class="col-md-6">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Sell price</label>
-                    <input class="form-control" asp-for="Form.SellPrice" type="number" step="0.01" />
-                </div>
-
-                <div class="col-12">
-                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Image</label>
-                    <input class="form-control" asp-for="Form.ImageFile" type="file" accept="image/*" />
-
-                    @if (!string.IsNullOrWhiteSpace(Model.Form.ExistingImagePath) && Model.Form.ExistingImagePath.StartsWith("/"))
+            <div class="ts-table-scroll ts-products-table-scroll">
+                <table class="table table-sm align-middle mb-0 ts-products-table" id="productListTable">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">ID</th>
+                            <th>Name</th>
+                            <th style="width:150px;">Category</th>
+                            <th style="width:110px;">Age</th>
+                            <th style="width:130px;">Price</th>
+                            <th style="width:90px;">Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var p in Model.Products)
                     {
-                        <div style="margin-top:10px;">
-                            <img src="@Model.Form.ExistingImagePath" alt="product image"
-                                 style="width:140px; height:90px; object-fit:cover; border-radius:14px; border:1px solid rgba(255,255,255,.12);" />
-                        </div>
+                        <tr data-product-name="@p.Name"
+                            data-id="@p.Id"
+                            data-barcode="@p.Barcode"
+                            data-category="@p.CategoryName"
+                            data-age="@p.AgeRange"
+                            data-import="@p.ImportPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                            data-sell="@p.SellPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                            data-image="@p.ImagePath"
+                            data-barcode-image="@p.BarcodeImagePath">
+                            <td>@p.Id</td>
+                            <td class="ts-text-truncate">@p.Name</td>
+                            <td>@p.CategoryName</td>
+                            <td>@p.AgeRange</td>
+                            <td class="fw-bold">@p.SellPrice.ToString("N0") ₫</td>
+                            <td>
+                                <span class="badge @(p.Quantity > 10 ? "bg-success" : p.Quantity > 0 ? "bg-warning" : "bg-danger")" style="font-size:11px;">
+                                    @p.Quantity
+                                </span>
+                            </td>
+                        </tr>
                     }
-                </div>
+                    @if (Model.Products.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4" style="color:rgba(255,255,255,.5);">No products found.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
             </div>
+        </div>
 
-            <div style="height:14px;"></div>
+        <div class="ts-shell-side ts-card" style="padding:14px; overflow:auto;">
+            <div class="ts-card__title" id="sidePanelTitle" style="margin-bottom:12px;">Create product</div>
 
-            <div class="d-flex gap-2 flex-wrap">
-                <button type="submit" class="btn btn-primary">
-                    @(Model.Form.ProductId.HasValue ? "Update" : "Create")
-                </button>
-            </div>
-        </form>
-
-        @if (Model.Form.ProductId.HasValue)
-        {
-            <form method="post"
-                  asp-action="ProductsDelete"
+            <form id="productSaveForm" method="post"
+                  asp-action="ProductsSave"
                   asp-controller="Portal"
                   asp-route-search="@Model.Search"
                   asp-route-categoryId="@Model.CategoryId"
                   asp-route-ageRange="@Model.AgeRange"
-                  style="margin-top:14px;"
-                  onsubmit="return confirm('Delete this product? Stock will follow the same rule as the original app.');">
-                <input type="hidden" name="productId" value="@Model.Form.ProductId.Value" />
-                <button type="submit" class="btn btn-outline-danger w-100">Delete</button>
+                  enctype="multipart/form-data"
+                  data-spa-form="1">
+                <input type="hidden" asp-for="Form.ProductId" id="Form_ProductId" />
+                <input type="hidden" asp-for="Form.ExistingImagePath" id="Form_ExistingImagePath" />
+
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Product Image</label>
+                        <div id="productImageDropzone" class="ts-product-dropzone">
+                            <input id="productImageFileInput" class="d-none" asp-for="Form.ImageFile" type="file" accept="image/*" />
+                            <div id="productImageDropHint" class="ts-product-dropzone__hint">
+                                Drop image here or click to choose
+                            </div>
+                            <img id="productImagePreview" class="ts-product-dropzone__preview" src="" style="display:none;" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Barcode</label>
+                        <input class="form-control" asp-for="Form.Barcode" id="Form_Barcode" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Name</label>
+                        <input class="form-control" asp-for="Form.Name" id="Form_Name" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Category</label>
+                        <input class="form-control" asp-for="Form.CategoryName" id="Form_CategoryName" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Age range</label>
+                        <input class="form-control" asp-for="Form.AgeRange" id="Form_AgeRange" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Import price</label>
+                        <input class="form-control ts-currency-input" asp-for="Form.ImportPrice" id="Form_ImportPrice" type="text" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Sell price</label>
+                        <input class="form-control ts-currency-input" asp-for="Form.SellPrice" id="Form_SellPrice" type="text" />
+                    </div>
+
+                    <div class="col-12" id="barcodeDisplayArea" style="display:none;">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Generated Barcode</label>
+                        <div class="ts-barcode-box">
+                            <img id="barcodeImagePreview" src="" alt="barcode" />
+                        </div>
+                    </div>
+                </div>
+
+                <div style="height:20px;"></div>
+
+                <div class="row g-2">
+                    <div class="col-6 d-grid">
+                        <button type="submit" class="btn btn-primary" id="btnSaveProduct">Create</button>
+                    </div>
+                    <div class="col-6 d-grid">
+                        <button type="button" id="btnDeleteProduct" class="btn btn-outline-danger" style="display:none;"
+                                onclick="if(confirm('Delete this product?')) document.getElementById('productDeleteForm').requestSubmit();">
+                            Delete
+                        </button>
+                    </div>
+                </div>
             </form>
-        }
-    </div>
+
+            <form id="productDeleteForm" method="post" asp-action="ProductsDelete" asp-controller="Portal"
+                  asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId" asp-route-ageRange="@Model.AgeRange"
+                  style="display:none;" data-spa-form="1">
+                <input type="hidden" name="productId" id="deleteProductId" />
+            </form>
+        </div>
     </div>
 </div>
 
+<script>
+    (function () {
+        const table = document.getElementById('productListTable');
+        const searchInput = document.getElementById('productSearchInput');
+        
+        // Form fields
+        const sidePanelTitle = document.getElementById('sidePanelTitle');
+        const productIdInput = document.getElementById('Form_ProductId');
+        const existingImagePathInput = document.getElementById('Form_ExistingImagePath');
+        const barcodeInput = document.getElementById('Form_Barcode');
+        const nameInput = document.getElementById('Form_Name');
+        const categoryInput = document.getElementById('Form_CategoryName');
+        const ageInput = document.getElementById('Form_AgeRange');
+        const importInput = document.getElementById('Form_ImportPrice');
+        const sellInput = document.getElementById('Form_SellPrice');
+        
+        const barcodeArea = document.getElementById('barcodeDisplayArea');
+        const barcodePreview = document.getElementById('barcodeImagePreview');
+        
+        const saveBtn = document.getElementById('btnSaveProduct');
+        const deleteBtn = document.getElementById('btnDeleteProduct');
+        const deleteIdInput = document.getElementById('deleteProductId');
+
+        const dropzone = document.getElementById('productImageDropzone');
+        const fileInput = document.getElementById('productImageFileInput');
+        const preview = document.getElementById('productImagePreview');
+        const hint = document.getElementById('productImageDropHint');
+
+        function normalizeText(s) {
+            if (!s) return '';
+            return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        }
+
+        // Auto-submit filter form on select change
+        const filterForm = document.getElementById('productFilterForm');
+        if (filterForm) {
+            filterForm.querySelectorAll('select').forEach(select => {
+                select.addEventListener('change', () => {
+                    filterForm.requestSubmit ? filterForm.requestSubmit() : filterForm.submit();
+                });
+            });
+        }
+
+        function formatCurrency(val) {
+            if (val === null || val === undefined || val === '') return '';
+            let n = Math.floor(parseFloat(val.toString()));
+            if (isNaN(n)) return '';
+            return n.toLocaleString('vi-VN');
+        }
+
+        function resetForm() {
+            sidePanelTitle.textContent = 'Create product';
+            productIdInput.value = '';
+            existingImagePathInput.value = '';
+            barcodeInput.value = '';
+            nameInput.value = '';
+            categoryInput.value = '';
+            ageInput.value = '';
+            importInput.value = '0';
+            sellInput.value = '0';
+            
+            barcodeArea.style.display = 'none';
+            barcodePreview.src = '';
+            
+            preview.src = '';
+            preview.style.display = 'none';
+            hint.style.display = '';
+            
+            saveBtn.textContent = 'Create';
+            deleteBtn.style.display = 'none';
+            deleteIdInput.value = '';
+
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(r => r.classList.remove('ts-products-table__row--selected'));
+        }
+
+        if (table) {
+            const rows = table.querySelectorAll('tbody tr[data-id]');
+            
+            // Search logic
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const q = normalizeText(searchInput.value);
+                    rows.forEach(row => {
+                        const name = normalizeText(row.getAttribute('data-product-name') || '');
+                        const bc = normalizeText(row.getAttribute('data-barcode') || '');
+                        row.style.display = (!q || name.indexOf(q) !== -1 || bc.indexOf(q) !== -1) ? '' : 'none';
+                    });
+                });
+            }
+
+            // Selection logic
+            rows.forEach(row => {
+                row.style.cursor = 'pointer';
+                row.addEventListener('click', function (e) {
+                    if (e.target.closest('a, button, input')) return;
+                    
+                    const isSelected = row.classList.contains('ts-products-table__row--selected');
+                    if (isSelected) {
+                        resetForm();
+                        return;
+                    }
+
+                    rows.forEach(r => r.classList.remove('ts-products-table__row--selected'));
+                    row.classList.add('ts-products-table__row--selected');
+
+                    sidePanelTitle.textContent = 'Edit product';
+                    productIdInput.value = row.getAttribute('data-id');
+                    existingImagePathInput.value = row.getAttribute('data-image');
+                    barcodeInput.value = row.getAttribute('data-barcode');
+                    nameInput.value = row.getAttribute('data-product-name');
+                    categoryInput.value = row.getAttribute('data-category');
+                    ageInput.value = row.getAttribute('data-age');
+                    importInput.value = formatCurrency(row.getAttribute('data-import'));
+                    sellInput.value = formatCurrency(row.getAttribute('data-sell'));
+
+                    const bcImg = row.getAttribute('data-barcode-image');
+                    if (bcImg) {
+                        barcodePreview.src = bcImg;
+                        barcodeArea.style.display = 'block';
+                    } else {
+                        barcodeArea.style.display = 'none';
+                    }
+
+                    const pImg = row.getAttribute('data-image');
+                    if (pImg) {
+                        preview.src = pImg;
+                        preview.style.display = 'block';
+                        hint.style.display = 'none';
+                    } else {
+                        preview.src = '';
+                        preview.style.display = 'none';
+                        hint.style.display = 'block';
+                    }
+
+                    saveBtn.textContent = 'Update';
+                    deleteBtn.style.display = 'block';
+                    deleteIdInput.value = row.getAttribute('data-id');
+                });
+            });
+
+            // Click outside to deselect
+            document.querySelector('.ts-shell-main').addEventListener('click', function(e) {
+                if (!e.target.closest('tr') && !e.target.closest('form')) {
+                    resetForm();
+                }
+            });
+        }
+
+        // Image upload preview
+        if (dropzone && fileInput) {
+            dropzone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                        hint.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // Real-time currency formatting
+        document.querySelectorAll('.ts-currency-input').forEach(input => {
+            input.addEventListener('input', function() {
+                let v = this.value.replace(/\D/g, '');
+                if (v) {
+                    this.value = parseInt(v).toLocaleString('vi-VN');
+                } else {
+                    this.value = '';
+                }
+            });
+        });
+
+        // Clean currency before submit
+        if (productForm) {
+            productForm.addEventListener('submit', function() {
+                document.querySelectorAll('.ts-currency-input').forEach(input => {
+                    input.value = input.value.replace(/\./g, '');
+                });
+            });
+        }
+        
+        // Default state: no selection
+        resetForm();
+    })();
+</script>
