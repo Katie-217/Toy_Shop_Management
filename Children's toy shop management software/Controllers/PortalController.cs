@@ -50,6 +50,10 @@ namespace Children_s_toy_shop_management_software.Controllers
 
         public async Task<IActionResult> Dashboard(string? detailBy, string? metric)
         {
+            if (!User.IsInRole("Admin"))
+            {
+                return RedirectToAction(nameof(Pos));
+            }
             ViewData["Title"] = "Dashboard";
             var normalizedDetail = NormalizeDashboardDetail(detailBy);
             var normalizedMetric = NormalizeDashboardMetric(metric);
@@ -122,7 +126,19 @@ namespace Children_s_toy_shop_management_software.Controllers
 
             var cart = GetCartFromSession(currentTabId);
 
+            // 1. Try finding by scan code (barcode)
             var product = await _posRepo.FindProductByScanCodeAsync(v);
+            
+            // 2. If not found by barcode, try finding by unique name match
+            if (product == null)
+            {
+                var matches = await _posRepo.SearchProductsAsync(v);
+                if (matches != null && matches.Count == 1)
+                {
+                    product = matches[0];
+                }
+            }
+
             if (product != null)
             {
                 var addQty = 1;
@@ -144,24 +160,33 @@ namespace Children_s_toy_shop_management_software.Controllers
                 }
 
                 SetCartToSession(currentTabId, cart);
+                ViewData["PosJustAdded"] = true;
+
+                // If we successfully added a product, we clear the search to prepare for next scan
+                var nextSearch = string.Empty; 
+
                 if (IsSpaFragmentRequest())
                 {
-                    return await PosViewAsync(currentSearch, currentTabId);
+                    return await PosViewAsync(nextSearch, currentTabId);
                 }
 
-                return RedirectToAction(nameof(Pos), new { search = currentSearch, tabId = currentTabId });
+                return RedirectToAction(nameof(Pos), new { search = nextSearch, tabId = currentTabId });
             }
 
-           
+            // Not found - treat as a search filter
             SetCartToSession(currentTabId, cart); 
             if (IsSpaFragmentRequest())
             {
                 ViewData["Title"] = "POS (Point of Sale)";
-                var vm = await BuildPosVmAsync(currentSearch, currentTabId);
-                vm.Search = v;
+                var vm = await BuildPosVmAsync(v, currentTabId); // Use v as search
+                if (vm.Products == null || vm.Products.Count == 0)
+                {
+                    vm.Error = $"No product matched '{v}'. Please check the barcode or search by name.";
+                }
                 return View("Pos", vm);
             }
 
+            TempData["PosError"] = $"No product matched '{v}'.";
             return RedirectToAction(nameof(Pos), new { search = v, tabId = currentTabId });
         }
 
@@ -207,6 +232,7 @@ namespace Children_s_toy_shop_management_software.Controllers
                 }
 
                 SetCartToSession(currentTabId, cart);
+                ViewData["PosJustAdded"] = true;
                 if (IsSpaFragmentRequest())
                 {
                     return await PosViewAsync(search, currentTabId);
@@ -469,7 +495,8 @@ namespace Children_s_toy_shop_management_software.Controllers
                     AgeRange = selected.AgeRange,
                     ImportPrice = selected.ImportPrice,
                     SellPrice = selected.SellPrice,
-                    ExistingImagePath = selected.ImagePath
+                    ExistingImagePath = selected.ImagePath,
+                    BarcodeImagePath = selected.BarcodeImagePath
                 };
             }
             else
@@ -483,7 +510,8 @@ namespace Children_s_toy_shop_management_software.Controllers
                     AgeRange = ages.Count > 0 ? ages[0] : "",
                     ImportPrice = 0,
                     SellPrice = 0,
-                    ExistingImagePath = null
+                    ExistingImagePath = null,
+                    BarcodeImagePath = null
                 };
             }
 
@@ -554,6 +582,58 @@ namespace Children_s_toy_shop_management_software.Controllers
                 categoryId,
                 ageRange
             });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> StockCheck(int? id, bool create = false)
+        {
+            ViewData["Title"] = "Inventory Audit";
+            await _inventoryRepo.EnsureSchemaAsync();
+            
+            var history = await _inventoryRepo.GetStockAuditHistoryAsync();
+            var vm = new StockCheckPageVm
+            {
+                History = history,
+                Date = DateTime.Today
+            };
+
+            if (id.HasValue)
+            {
+                vm.SelectedAudit = history.FirstOrDefault(h => h.AuditId == id.Value);
+                if (vm.SelectedAudit != null)
+                {
+                    vm.SelectedLines = await _inventoryRepo.GetStockAuditLinesAsync(id.Value);
+                }
+            }
+            else if (create)
+            {
+                vm.Items = await _inventoryRepo.GetStockCheckDataAsync();
+            }
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveStockCheck([FromBody] StockAuditSaveVm model)
+        {
+            if (model == null || model.Items == null || model.Items.Count == 0)
+            {
+                return Json(new { success = false, message = "No data to save." });
+            }
+
+            try
+            {
+                int? userId = null;
+                var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (claim != null && int.TryParse(claim.Value, out var id)) userId = id;
+
+                var auditId = await _inventoryRepo.SaveStockAuditAsync(model, userId);
+                return Json(new { success = true, message = $"Stock check saved successfully! (Audit ID: {auditId})", auditId });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error saving audit: " + ex.Message });
+            }
         }
 
         [HttpGet]
@@ -1053,7 +1133,8 @@ namespace Children_s_toy_shop_management_software.Controllers
                 Search = string.IsNullOrWhiteSpace(search) ? null : search.Trim(),
                 Products = products,
                 Cart = cart,
-                Error = error
+                Error = error,
+                JustAdded = (bool?)ViewData["PosJustAdded"] ?? false
             };
             return vm;
         }

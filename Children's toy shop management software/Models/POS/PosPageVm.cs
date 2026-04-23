@@ -7,5 +7,6 @@ public sealed class PosPageVm
     public List<PosProductsItemVm> Products { get; set; } = new();
     public PosCartVm Cart { get; set; } = new();
     public string? Error { get; set; }
+    public bool JustAdded { get; set; }
 }
 

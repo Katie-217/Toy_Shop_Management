@@ -1,2 +1,125 @@
-/* Inventory > StockCheck (subtab) */
+/* Stock Check / Inventory Audit Styles */
+@import url("../../toyshop-dark.css");
 
+.ts-shell-page--stock-check {
+    height: calc(100vh - 120px);
+    padding: 0;
+}
+
+.ts-shell-layout--stock-check {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    height: 100%;
+    min-height: 0;
+}
+
+.ts-table-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.ts-table-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.ts-history-table {
+    --bs-table-bg: transparent;
+    --bs-table-color: rgba(255,255,255,.9);
+    table-layout: fixed;
+    margin-bottom: 0;
+}
+.ts-history-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #101a38 !important; /* Matching products table header */
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,.1) !important;
+    padding: 12px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.ts-history-table tbody td {
+    background: transparent !important;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    padding: 14px 16px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+.ts-history-table tbody tr { 
+    background: transparent !important; 
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.ts-history-table tbody tr:hover {
+    background: rgba(255,255,255,.03) !important;
+}
+.ts-history-table tbody tr.is-selected {
+    background: rgba(192,132,252,.1) !important;
+    box-shadow: inset 3px 0 0 #c084fc;
+}
+.ts-history-table tbody tr.is-selected td {
+    background: rgba(192,132,252,.1) !important;
+}
+
+.ts-audit-table thead th {
+    background: #0f172a !important;
+    color: rgba(255,255,255,.4);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px;
+    border: none;
+}
+.ts-audit-table tbody td {
+    border-bottom: 1px solid rgba(255,255,255,.02);
+    padding: 8px 10px;
+    color: #fff;
+}
+
+.ts-audit-badge-white {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 45px;
+    text-align: center;
+}
+.ts-audit-badge-muted {
+    background: rgba(255,255,255,.1) !important;
+    color: #fff !important;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 45px;
+    text-align: center;
+}
+
+.ts-audit-input-physical, .ts-audit-input-note {
+    background: #fff !important;
+    border: 1px solid #ced4da !important;
+    color: #000 !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+}
+.ts-audit-input-physical { text-align: center; }
+
+.ts-audit-diff { color: rgba(255,255,255,.2); font-weight: 700; font-size: 14px; }
+.ts-audit-diff.is-match { color: #10b981; }
+.ts-audit-diff.is-mismatch { color: #f43f5e; }
+
+@media print {
+    .ts-shell-side, .btn, .ts-app-topbar { display: none !important; }
+    .ts-shell-layout { display: block !important; }
+    .ts-card { background: white !important; color: black !important; border: 1px solid #eee !important; }
+}

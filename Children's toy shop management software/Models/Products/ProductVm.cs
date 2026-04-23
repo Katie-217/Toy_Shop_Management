@@ -11,6 +11,7 @@ public sealed class ProductVm
     public decimal SellPrice { get; set; }
     public int Quantity { get; set; }
     public string? ImagePath { get; set; }
+    public string? BarcodeImagePath { get; set; }
     public bool IsActive { get; set; }
 }
 

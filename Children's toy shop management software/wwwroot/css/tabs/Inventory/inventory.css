@@ -1,7 +1,102 @@
 /* Inventory (tab) */
 @import url("../../toyshop-dark.css");
-@import url("./productentry.css");
-@import url("./stockin.css");
-@import url("./stockcheck.css");
-@import url("./returns.css");
 
+/* inventory layout */
+.ts-inventory-layout {
+  min-height: 0;
+  height: 100%;
+  align-items: stretch;
+}
+.ts-inventory-layout > .ts-shell-main,
+.ts-inventory-layout > .ts-shell-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+.ts-inventory-layout > .ts-shell-main { overflow: hidden; }
+.ts-inventory-layout > .ts-shell-side {
+  position: static;
+  top: auto;
+  align-self: stretch;
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ts-inventory-layout > .ts-shell-side::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* inventory table */
+.ts-inventory-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ts-inventory-table-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.ts-inventory-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: rgba(255,255,255,.9);
+  table-layout: fixed;
+}
+.ts-inventory-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #101a38 !important;
+  color: #fff;
+  border-color: rgba(255,255,255,.12);
+  padding: 10px 12px;
+}
+.ts-inventory-table tbody td {
+  background: transparent !important;
+  color: #fff;
+  border-color: rgba(255,255,255,.08);
+  padding: 10px 12px;
+}
+.ts-inventory-table tbody tr { background: transparent !important; }
+
+/* selected row highlight */
+.ts-inventory-table__row--selected {
+  background: transparent !important;
+  box-shadow: inset 3px 0 0 rgba(193, 113, 208, 0.98);
+}
+.ts-inventory-table tbody tr.ts-inventory-table__row--selected > td {
+  background: rgba(192,132,252,.15) !important;
+}
+
+/* Section awareness colors */
+.ts-shell-page--purchase .ts-card__title { color: #a78bfa; } /* Purple for Stock In */
+.ts-shell-page--sales .ts-card__title { color: #fb923c; } /* Orange for Returns */
+
+/* inventory page height */
+.ts-shell-page--inventory {
+  height: calc(100vh - 150px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Line items table */
+.ts-lines-card {
+  background: rgba(255,255,255,.03);
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  overflow: hidden;
+}
+.ts-lines-table thead th {
+  background: rgba(255,255,255,.05) !important;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.5);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}

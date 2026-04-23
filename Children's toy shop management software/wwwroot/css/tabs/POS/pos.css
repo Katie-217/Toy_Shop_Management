@@ -137,6 +137,74 @@
   flex-shrink:0;
 }
 
+.ts-search-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ts-search-box form {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+
+.ts-search-input {
+  flex: 1;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all .2s ease;
+}
+
+.ts-search-input:focus {
+  outline: none;
+  border-color: var(--ts-accent);
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 0 0 4px rgba(167,139,250,.15);
+}
+
+.ts-search-btn {
+  background: linear-gradient(135deg, var(--ts-accent), #6366f1);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s ease;
+  white-space: nowrap;
+}
+
+.ts-search-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(167,139,250,.3);
+}
+
+.ts-search-btn--alt {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ts-search-btn--alt:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.2);
+}
+
+.ts-search-btn--alt svg {
+  opacity: .85;
+}
+
 .ts-pos-body{
   display:grid;
   grid-template-columns: minmax(0, 50%) minmax(520px, 50%);

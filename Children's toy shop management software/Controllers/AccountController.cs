@@ -17,7 +17,11 @@ public class AccountController(AccountRepository accountRepo) : Controller
 
         if (User.Identity?.IsAuthenticated == true)
         {
-            return RedirectToAction("Dashboard", "Portal");
+            if (User.IsInRole("Admin"))
+            {
+                return RedirectToAction("Dashboard", "Portal");
+            }
+            return RedirectToAction("Pos", "Portal");
         }
 
         return View(new LoginVm { ReturnUrl = returnUrl });
@@ -63,7 +67,7 @@ public class AccountController(AccountRepository accountRepo) : Controller
             return Redirect(model.ReturnUrl);
         }
 
-        if (user.Role == "Cashier")
+        if (user.Role == "Cashier" || user.Role == "Staff")
         {
             return RedirectToAction("Pos", "Portal");
         }

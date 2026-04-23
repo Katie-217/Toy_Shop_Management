@@ -88,7 +88,7 @@ public sealed class PosRepository(IDbConnectionFactory db)
             LEFT JOIN Categories c ON p.CategoryId = c.Id
             LEFT JOIN Suppliers s ON p.SupplierId = s.Id
             WHERE ISNULL(p.IsActive,1)=1
-            AND REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') = @key";
+            AND REPLACE(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N''),N'.',N''),N'/',N'') = @key";
 
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
@@ -118,8 +118,9 @@ public sealed class PosRepository(IDbConnectionFactory db)
             AND (
                 (LEN(@key) >= 4 AND p.Barcode LIKE @key + N'%')
                 OR (LEN(@key) >= 4 AND @key LIKE p.Barcode + N'%')
-                OR (LEN(@key) >= 4 AND REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') LIKE @key + N'%')
-                OR (LEN(@key) >= 4 AND @key LIKE REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') + N'%')
+                OR (LEN(@key) >= 5 AND p.Barcode LIKE N'%' + @key + N'%')
+                OR (LEN(@key) >= 4 AND REPLACE(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N''),N'.',N''),N'/',N'') LIKE @key + N'%')
+                OR (LEN(@key) >= 4 AND @key LIKE REPLACE(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N''),N'.',N''),N'/',N'') + N'%')
             )
             ORDER BY
                 CASE WHEN REPLACE(REPLACE(LTRIM(RTRIM(p.Barcode)),N'-',N''),N' ',N'') = @key THEN 0 ELSE 1 END,

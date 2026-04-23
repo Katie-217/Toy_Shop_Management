@@ -1,0 +1,486 @@
+@model Children_s_toy_shop_management_software.Models.Inventory.StockCheckPageVm
+
+@{
+    ViewData["Title"] = "Inventory Audit";
+}
+
+<div class="ts-shell-page ts-page ts-anim-in ts-shell-page--stock-check" id="ts-fragment-root" data-page-title="Inventory Audit">
+    <style>
+        /* Stock Check / Inventory Audit Styles - Optimized for Products-page match */
+        @@import url("/css/toyshop-dark.css");
+
+        .ts-shell-page--stock-check {
+            height: calc(100vh - 80px);
+            padding: 0;
+            margin-top: -10px;
+        }
+
+        .ts-shell-layout--stock-check {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .ts-table-scroll {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            min-height: 0; /* Crucial for flex scrolling */
+        }
+        .ts-table-scroll::-webkit-scrollbar { display: none; }
+
+        .ts-history-table {
+            --bs-table-bg: transparent;
+            --bs-table-color: rgba(255,255,255,.9);
+            table-layout: fixed;
+            margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .ts-history-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #101a38 !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
+            border-bottom: 1px solid rgba(255,255,255,.05) !important;
+            padding: 12px 16px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            width: 33.33%;
+        }
+        .ts-history-table tbody td {
+            background: transparent !important;
+            color: #fff !important;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            padding: 10px 16px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        .ts-history-table tbody tr { 
+            background: transparent !important; 
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .ts-history-table tbody tr:hover {
+            background: rgba(255,255,255,.03) !important;
+        }
+        .ts-history-table tbody tr.is-selected {
+            background: rgba(192,132,252,.15) !important;
+            box-shadow: inset 4px 0 0 #c084fc !important;
+        }
+        .ts-history-table tbody tr.is-selected td {
+            background: transparent !important;
+            color: #fff;
+        }
+
+        .ts-card-header-clean {
+            padding: 14px 20px;
+            background: rgba(255,255,255,.02);
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            display: flex;
+            justify-content: space-between;
+            align-items:center;
+        }
+
+        .ts-filter-bar {
+            padding: 14px 16px;
+            background: rgba(255,255,255,.01);
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .ts-filter-input {
+            background: #fff !important;
+            border: 1px solid #ced4da !important;
+            color: #000 !important;
+            border-radius: 6px;
+            font-size: 14px;
+            padding: 0 15px;
+            height: 40px;
+            flex: 1;
+            font-weight: 500;
+        }
+        .ts-filter-input::placeholder { color: #adb5bd; }
+
+        .ts-audit-table thead th {
+            background: #101a38 !important;
+            color: #fff !important;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 10px 16px;
+            border: none;
+            font-weight: 700;
+        }
+        .ts-audit-table tbody td {
+            border-bottom: 1px solid rgba(255,255,255,.02);
+            padding: 8px 16px;
+            color: #fff;
+        }
+
+        .ts-audit-badge-white {
+            background: transparent !important;
+            color: rgba(255,255,255,.5) !important;
+            padding: 0;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-block;
+            text-align: center;
+        }
+        .ts-audit-badge-muted {
+            background: rgba(255,255,255,.1) !important;
+            color: #fff !important;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 11px;
+            display: inline-block;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .ts-audit-input-physical, .ts-audit-input-note {
+            background: #fff !important;
+            border: 1px solid #ced4da !important;
+            color: #000 !important;
+            border-radius: 4px !important;
+            padding: 3px 6px !important;
+            font-size: 12px;
+            font-weight: 600;
+            width: 100%;
+        }
+        .ts-audit-input-physical { text-align: center; }
+
+        .ts-audit-diff { color: rgba(255,255,255,.2); font-weight: 700; font-size: 14px; }
+        .ts-audit-diff.is-match { color: #10b981; }
+        .ts-audit-diff.is-mismatch { color: #f43f5e; }
+
+        @@media print {
+            .ts-shell-side, .btn, .ts-app-topbar { display: none !important; }
+            .ts-shell-layout { display: block !important; }
+            .ts-card { background: white !important; color: black !important; border: 1px solid #eee !important; }
+        }
+    </style>
+    <div class="ts-shell-layout ts-shell-layout--stock-check" id="stockCheckLayout">
+        
+        <!-- LEFT: AUDIT HISTORY (50%) -->
+        <div class="ts-shell-side ts-card" style="padding:0; display:flex; flex-direction:column; overflow:hidden; height: 100%;">
+            <div class="ts-card-header-clean">
+                <h3 class="ts-card__title" style="margin:0; font-size:15px; font-weight:700; color: #fff;">Audit History</h3>
+                <span style="font-size:10px; color:rgba(255,255,255,.2); font-weight:700; letter-spacing:0.5px;">@Model.History.Count RECORDS</span>
+            </div>
+
+            <div class="ts-filter-bar">
+                <input type="text" class="ts-filter-input" placeholder="Quick search..." disabled />
+                <button class="btn btn-dark btn-sm" style="font-size:9px; padding:2px 8px; border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.4); text-transform:uppercase; font-weight:700;">Filter</button>
+            </div>
+
+            <div class="ts-table-scroll" style="flex:1; overflow-y:auto;">
+                <div style="padding: 14px;">
+                    <table class="table ts-history-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date / Time</th>
+                                <th>Auditor</th>
+                            </tr>
+                        </thead>
+                    <tbody>
+                        @foreach (var h in Model.History)
+                        {
+                            var isActive = Model.SelectedAudit?.AuditId == h.AuditId;
+                            <tr onclick="navigateToAudit(@h.AuditId)" class="@(isActive ? "is-selected" : "")">
+                                <td>#@h.AuditId</td>
+                                <td>@h.AuditDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@h.CreatedByUserName</td>
+                            </tr>
+                        }
+                        @if (Model.History.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center py-5 text-muted" style="font-size:12px;">No audit history found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: AUDIT DETAIL (50%) -->
+        <div class="ts-shell-main ts-card" style="padding:0; display:flex; flex-direction:column; overflow:hidden; height: 100%;">
+            @if (Model.SelectedAudit == null && (Model.Items == null || Model.Items.Count == 0))
+            {
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px;">
+                    <a asp-action="StockCheck" asp-controller="Portal" asp-route-create="true" data-nav="tab" data-nav-smooth="1"
+                       class="ts-create-trigger" 
+                       style="width:80px; height:80px; background:rgba(255,255,255,.05); border-radius:24px; display:flex; align-items:center; justify-content:center; margin-bottom:24px; border:1px solid rgba(255,255,255,.05); text-decoration:none; transition:all 0.3s ease;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ts-plus-icon" style="transition:all 0.3s ease;">
+                            <path d="M12 5v14M5 12h14"></path>
+                        </svg>
+                    </a>
+                    <h2 style="color:#fff; font-size:20px; font-weight:700; margin-bottom:12px;">Ready to Audit?</h2>
+                    <p style="color:rgba(255,255,255,.3); font-size:13px; max-width:280px; line-height:1.6; margin:0;">Click the plus icon to start a new stock check session.</p>
+                </div>
+                <style>
+                    .ts-create-trigger:hover {
+                        background: rgba(37, 140, 251, 0.1) !important;
+                        border-color: rgba(37, 140, 251, 0.3) !important;
+                        transform: scale(1.05);
+                    }
+                    .ts-create-trigger:hover .ts-plus-icon {
+                        stroke: #258cfb !important;
+                    }
+                </style>
+            }
+            else
+            {
+                bool isPast = Model.SelectedAudit != null && Model.SelectedAudit.AuditDate.Date < DateTime.Today;
+                bool isNew = Model.SelectedAudit == null;
+                string auditTitle = isNew ? "Create new audit" : $"Audit Record #{Model.SelectedAudit!.AuditId}";
+                string auditDateStr = isNew ? DateTime.Today.ToString("dd/MM/yyyy") : Model.SelectedAudit!.AuditDate.ToString("dd/MM/yyyy HH:mm");
+
+                <div style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,.05); display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h2 class="ts-card__title" style="margin:0; font-size:16px; font-weight:700; color:#fff;">@auditTitle</h2>
+                        <div style="font-size:11px; color:rgba(255,255,255,.3); margin-top:2px;">
+                            @(isPast ? "Historical (Read-only)" : "Started at") @auditDateStr
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        @if (!isPast)
+                        {
+                            <button type="button" id="btnSaveAudit" class="btn btn-sm" style="background:#10b981; color:#fff; padding:6px 16px; font-weight:700; border-radius:8px; border:none;">
+                                Save Audit
+                            </button>
+                        }
+                        <button type="button" class="btn btn-dark btn-sm" style="padding:6px 16px; border-radius:8px; border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.6);" onclick="window.print()">
+                            Print Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="ts-table-scroll" style="flex:1; overflow-y:auto;">
+                    <div style="padding: 14px;">
+                        <table class="table table-sm align-middle ts-audit-table">
+                        <thead>
+                            <tr>
+                                <th style="width:60px; padding-left:20px;">ID</th>
+                                <th>Product Name</th>
+                                <th style="width:80px; text-align:center;">System</th>
+                                <th style="width:120px; text-align:center;">Physical</th>
+                                <th style="width:70px; text-align:center;">Diff</th>
+                                <th style="min-width:150px; padding-right:20px;">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (isNew)
+                            {
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr data-id="@item.ProductId" class="ts-audit-row">
+                                        <td class="text-muted" style="font-size:11px; padding-left:20px;">@item.ProductId</td>
+                                        <td>
+                                            <div style="font-weight:600; font-size:13px; color:#fff;">@item.Name</div>
+                                            <div style="font-size:10px; color:rgba(255,255,255,.3);">@item.Barcode</div>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <span class="ts-audit-badge-white" data-val="@item.SystemStock">@item.SystemStock</span>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm ts-audit-input-physical" 
+                                                   data-target-diff="diff-@item.ProductId" data-system-val="@item.SystemStock" placeholder="--" />
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <span id="diff-@item.ProductId" class="ts-audit-diff">--</span>
+                                        </td>
+                                        <td style="padding-right:20px;">
+                                            <input type="text" class="form-control form-control-sm ts-audit-input-note" placeholder="..." />
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var line in Model.SelectedLines)
+                                {
+                                    <tr data-id="@line.ProductId" class="ts-audit-row">
+                                        <td class="text-muted" style="font-size:11px; padding-left:20px;">@line.ProductId</td>
+                                        <td>
+                                            <div style="font-weight:600; font-size:13px; color:#fff;">@line.ProductName</div>
+                                            <div style="font-size:10px; color:rgba(255,255,255,.3);">@line.Barcode</div>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <span class="ts-audit-badge-white" data-val="@line.SystemQty">@line.SystemQty</span>
+                                        </td>
+                                        <td>
+                                            @if (!isPast)
+                                            {
+                                                <input type="number" class="form-control form-control-sm ts-audit-input-physical" 
+                                                       value="@line.PhysicalQty"
+                                                       data-target-diff="diff-@line.ProductId" data-system-val="@line.SystemQty" />
+                                            }
+                                            else
+                                            {
+                                                <span class="ts-audit-badge-muted">@line.PhysicalQty</span>
+                                            }
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <span id="diff-@line.ProductId" class="ts-audit-diff @(!isPast ? "" : (line.Difference == 0 ? "is-match" : "is-mismatch"))" data-diff-val="@line.Difference">
+                                                @(line.Difference > 0 ? "+" : "")@line.Difference
+                                            </span>
+                                        </td>
+                                        <td style="padding-right:20px;">
+                                            @if (!isPast)
+                                            {
+                                                <input type="text" class="form-control form-control-sm ts-audit-input-note" value="@line.Note" placeholder="..." />
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted" style="font-size:12px;">@line.Note</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function navigateToAudit(id) {
+        const url = `/Portal/StockCheck?id=${id}`;
+        // Try to use the project's global navigation if it exists
+        if (typeof window.navigateTo === 'function') {
+            window.navigateTo(url);
+        } else {
+            const navLink = document.createElement('a');
+            navLink.href = url;
+            navLink.setAttribute('data-nav', 'tab');
+            navLink.setAttribute('data-nav-smooth', '1');
+            navLink.style.display = 'none';
+            document.body.appendChild(navLink);
+            navLink.click();
+            setTimeout(() => navLink.remove(), 100);
+        }
+    }
+
+    (function() {
+        // Broad reset when clicking any non-interactive empty space
+        const root = document.getElementById('ts-fragment-root');
+        if (root) {
+            root.addEventListener('click', function(e) {
+                // If the click was on an interactive element or inside one, don't reset
+                if (e.target.closest('tr, a, button, input, select, textarea, .ts-create-trigger')) {
+                    return;
+                }
+                
+                const url = '/Portal/StockCheck';
+                if (typeof window.navigateTo === 'function') {
+                    window.navigateTo(url, { smooth: true });
+                } else {
+                    const navLink = document.createElement('a');
+                    navLink.href = url;
+                    navLink.setAttribute('data-nav', 'tab');
+                    navLink.setAttribute('data-nav-smooth', '1');
+                    document.body.appendChild(navLink);
+                    navLink.click();
+                    setTimeout(() => navLink.remove(), 100);
+                }
+            });
+        }
+
+        const physInputs = document.querySelectorAll('.ts-audit-input-physical');
+;
+        physInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                const physicalVal = parseInt(this.value);
+                const systemVal = parseInt(this.getAttribute('data-system-val'));
+                const diffId = this.getAttribute('data-target-diff');
+                const diffEl = document.getElementById(diffId);
+                
+                if (isNaN(physicalVal)) {
+                    diffEl.textContent = '--';
+                    diffEl.classList.remove('is-match', 'is-mismatch');
+                    return;
+                }
+                
+                const diff = physicalVal - systemVal;
+                diffEl.textContent = (diff > 0 ? '+' : '') + diff;
+                
+                if (diff === 0) {
+                    diffEl.classList.add('is-match');
+                    diffEl.classList.remove('is-mismatch');
+                } else {
+                    diffEl.classList.add('is-mismatch');
+                    diffEl.classList.remove('is-match');
+                }
+                diffEl.setAttribute('data-diff-val', diff);
+            });
+        });
+
+        const btnSave = document.getElementById('btnSaveAudit');
+        if (btnSave) {
+            btnSave.addEventListener('click', function() {
+                const auditData = { Note: "Manual Stock Audit", Items: [] };
+                const rows = document.querySelectorAll('.ts-audit-row');
+                
+                rows.forEach(row => {
+                    const productId = parseInt(row.getAttribute('data-id'));
+                    const physicalInput = row.querySelector('.ts-audit-input-physical');
+                    const noteInput = row.querySelector('.ts-audit-input-note');
+                    const diffEl = row.querySelector('.ts-audit-diff');
+                    
+                    if (physicalInput && physicalInput.value !== "") {
+                        auditData.Items.push({
+                            ProductId: productId,
+                            SystemQty: parseInt(physicalInput.getAttribute('data-system-val')),
+                            PhysicalQty: parseInt(physicalInput.value),
+                            Difference: parseInt(diffEl.getAttribute('data-diff-val') || '0'),
+                            Note: noteInput.value || ""
+                        });
+                    }
+                });
+
+                if (auditData.Items.length === 0) {
+                    alert('Please enter at least one product count.');
+                    return;
+                }
+
+                btnSave.disabled = true;
+                btnSave.textContent = 'Saving...';
+
+                fetch('/Portal/SaveStockCheck', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify(auditData)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        navigateToAudit(''); // Refresh list via SPA
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(() => alert('Network error'))
+                .finally(() => {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = 'Save Changes';
+                });
+            });
+        }
+    })();
+</script>
