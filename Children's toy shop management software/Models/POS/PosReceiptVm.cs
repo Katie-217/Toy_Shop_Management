@@ -8,6 +8,7 @@ public sealed class PosReceiptVm
     public string? PaymentQrValue { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
+    public string UserName { get; set; } = string.Empty;
     public decimal SubTotal { get; set; }
     public decimal Discount { get; set; }
     public decimal GrandTotal { get; set; }

@@ -17,7 +17,7 @@
     <title>@title - Toy Shop Management</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/toyshop-dark.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <div class="ts-app">
@@ -31,79 +31,88 @@
             </div>
 
             <nav class="ts-nav" aria-label="Main navigation">
-                <a class="ts-nav__link" asp-controller="Portal" asp-action="Dashboard" data-nav="tab" aria-current='@(currentAction == "Dashboard" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3 10.5L12 3L21 10.5V21H3V10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">Dashboard</span>
-                </a>
-                <a class="ts-nav__link" asp-controller="Portal" asp-action="Pos" data-nav="tab" aria-current='@(currentAction == "Pos" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7 7H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M7 17H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M6 3H18C19.1 3 20 3.9 20 5V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V5C4 3.9 4.9 3 6 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">POS</span>
-                </a>
-                <div class="ts-nav-group @((currentAction == "Inventory" || currentAction == "Products") ? "is-open" : "")" data-nav-group="inventory">
-                    <button type="button"
-                            class="ts-nav__link ts-nav__link--parent @((currentAction == "Inventory" || currentAction == "Products") ? "is-active" : "")"
-                            data-nav-parent-toggle
-                            aria-expanded="@((currentAction == "Inventory" || currentAction == "Products") ? "true" : "false")"
-                            aria-controls="navInventorySub"
-                            id="navInventoryParent">
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="ts-nav__link" asp-controller="Portal" asp-action="Dashboard" data-nav="tab" aria-current='@(currentAction == "Dashboard" ? "page" : null)'>
                         <span class="ts-nav__icon" aria-hidden="true">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2L22 7L12 12L2 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                                <path d="M22 7V17L12 22L2 17V7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M3 10.5L12 3L21 10.5V21H3V10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M9 21V12H15V21" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             </svg>
                         </span>
-                        <span class="ts-nav__text">Inventory</span>
-                        <span class="ts-nav__chevron" aria-hidden="true">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <span class="ts-nav__text">Dashboard</span>
+                    </a>
+                }
+                @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Admin"))
+                {
+                    <a class="ts-nav__link" asp-controller="Portal" asp-action="Pos" data-nav="tab" aria-current='@(currentAction == "Pos" ? "page" : null)'>
+                        <span class="ts-nav__icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 7H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M7 17H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M6 3H18C19.1 3 20 3.9 20 5V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V5C4 3.9 4.9 3 6 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
                             </svg>
                         </span>
-                    </button>
-                    <div class="ts-nav__sub" id="navInventorySub" role="group" aria-labelledby="navInventoryParent">
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Products"
-                           data-nav="tab"
-                           aria-current='@(currentAction == "Products" ? "page" : null)'>
-                            <span class="ts-nav__text">Product Entry</span>
-                        </a>
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Inventory"
-                           asp-route-section="purchase"
-                           data-nav="tab"
-                           aria-current='@(currentAction == "Inventory" && invSection == "purchase" ? "page" : null)'>
-                            <span class="ts-nav__text">Stock In</span>
-                        </a>
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Products"
-                           data-nav="tab"
-                           aria-current="@(currentAction == "Products" ? "page" : null)">
-                            <span class="ts-nav__text">Stock Check</span>
-                        </a>
-                        <a class="ts-nav__link ts-nav__link--sub"
-                           asp-controller="Portal"
-                           asp-action="Inventory"
-                           asp-route-section="sales"
-                           data-nav="tab"
-                           aria-current='@(currentAction == "Inventory" && invSection == "sales" ? "page" : null)'>
-                            <span class="ts-nav__text">Returns</span>
-                        </a>
+                        <span class="ts-nav__text">POS</span>
+                    </a>
+                }
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="ts-nav-group @((currentAction == "Inventory" || currentAction == "Products" || currentAction == "StockCheck") ? "is-open" : "")" data-nav-group="inventory">
+                        <button type="button"
+                                class="ts-nav__link ts-nav__link--parent @((currentAction == "Inventory" || currentAction == "Products" || currentAction == "StockCheck") ? "is-active" : "")"
+                                data-nav-parent-toggle
+                                aria-expanded="@((currentAction == "Inventory" || currentAction == "Products" || currentAction == "StockCheck") ? "true" : "false")"
+                                aria-controls="navInventorySub"
+                                id="navInventoryParent">
+                            <span class="ts-nav__icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L22 7L12 12L2 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                    <path d="M22 7V17L12 22L2 17V7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <span class="ts-nav__text">Inventory</span>
+                            <span class="ts-nav__chevron" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                        </button>
+                        <div class="ts-nav__sub" id="navInventorySub" role="group" aria-labelledby="navInventoryParent">
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="Products"
+                               data-nav="tab"
+                               aria-current='@(currentAction == "Products" ? "page" : null)'>
+                                <span class="ts-nav__text">Product Entry</span>
+                            </a>
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="Inventory"
+                               asp-route-section="purchase"
+                               data-nav="tab"
+                               aria-current='@(currentAction == "Inventory" && invSection == "purchase" ? "page" : null)'>
+                                <span class="ts-nav__text">Stock In</span>
+                            </a>
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="StockCheck"
+                               data-nav="tab"
+                               aria-current='@(currentAction == "StockCheck" ? "page" : null)'>
+                                <span class="ts-nav__text">Stock Check</span>
+                            </a>
+                            <a class="ts-nav__link ts-nav__link--sub"
+                               asp-controller="Portal"
+                               asp-action="Inventory"
+                               asp-route-section="sales"
+                               data-nav="tab"
+                               aria-current='@(currentAction == "Inventory" && qSection == "sales" ? "page" : null)'>
+                                <span class="ts-nav__text">Returns</span>
+                            </a>
+                        </div>
                     </div>
-                </div>
+                }
                 <a class="ts-nav__link" asp-controller="Portal" asp-action="Reports" data-nav="tab" aria-current='@(currentAction == "Reports" ? "page" : null)'>
                     <span class="ts-nav__icon" aria-hidden="true">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -115,28 +124,31 @@
                     </span>
                     <span class="ts-nav__text">Sales History</span>
                 </a>
-                <a class="ts-nav__link" asp-controller="Portal" asp-action="Customers" data-nav="tab" aria-current='@(currentAction == "Customers" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <path d="M20 21V19C20 17.8954 19.5523 16.8954 18.8284 16.1716" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M16 3.16399C17.6953 3.69373 19 5.25874 19 7C19 8.74126 17.6953 10.3063 16 10.836" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">Customers</span>
-                </a>
-                <a class="ts-nav__link ts-nav__link--admin" asp-controller="Portal" asp-action="Staff" data-nav="tab" aria-current='@(currentAction == "Staff" ? "page" : null)'>
-                    <span class="ts-nav__icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <path d="M20 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M18 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </span>
-                    <span class="ts-nav__text">Staff</span>
-                </a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="ts-nav__link" asp-controller="Portal" asp-action="Customers" data-nav="tab" aria-current='@(currentAction == "Customers" ? "page" : null)'>
+                        <span class="ts-nav__icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M20 21V19C20 17.8954 19.5523 16.8954 18.8284 16.1716" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M16 3.16399C17.6953 3.69373 19 5.25874 19 7C19 8.74126 17.6953 10.3063 16 10.836" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="ts-nav__text">Customers</span>
+                    </a>
+                    <a class="ts-nav__link ts-nav__link--admin" asp-controller="Portal" asp-action="Staff" data-nav="tab" aria-current='@(currentAction == "Staff" ? "page" : null)'>
+                        <span class="ts-nav__icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M10 11C12.2091 11 14 9.20914 14 7C14 4.79086 12.2091 3 10 3C7.79086 3 6 4.79086 6 7C6 9.20914 7.79086 11 10 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M20 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M18 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="ts-nav__text">Staff</span>
+                    </a>
+                }
             </nav>
 
             <div class="ts-sidebar__footer">
@@ -144,8 +156,18 @@
                     @if (User?.Identity?.IsAuthenticated == true)
                     {
                         <div class="ts-user__row">
-                            <span class="ts-user__label">Hello</span>
-                            <span class="ts-user__name">@User.Identity!.Name</span>
+                            <div class="ts-user__info">
+                                <span class="ts-user__label">Hello,</span>
+                                <span class="ts-user__name">@User.Identity!.Name</span>
+                            </div>
+                            <a asp-controller="Account" asp-action="Logout" class="ts-logout-btn" title="Sign Out">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" />
+                                    <polyline points="16 17 21 12 16 7" />
+                                    <line x1="21" y1="12" x2="9" y2="12" />
+                                </svg>
+                                <span class="ts-logout-label">Logout</span>
+                            </a>
                         </div>
                     }
                     else
@@ -185,28 +207,216 @@
             const body = document.body;
             const main = document.querySelector('main.ts-main');
             if (!main) return;
+            const pendingSpaForms = new WeakSet();
 
-            function mountFragmentHtml(html) {
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const root = doc.body.firstElementChild;
-                if (!root) {
-                    main.innerHTML = html;
-                    return;
-                }
-                main.innerHTML = '';
-                const imported = document.importNode(root, true);
-                main.appendChild(imported);
-                imported.querySelectorAll('script').forEach(function (old) {
-                    const s = document.createElement('script');
-                    if (old.src) {
-                        s.src = old.src;
-                        if (old.async) s.async = true;
-                        if (old.defer) s.defer = true;
-                    } else {
-                        s.textContent = old.textContent;
+            function captureScrollState() {
+                const state = {
+                    winY: window.scrollY || 0,
+                    byId: {},
+                    tableScrollTops: [],
+                    byKey: {}
+                };
+                try {
+                    const curPage = main.querySelector('.ts-page');
+                    if (!curPage) return state;
+
+                    // Preserve scroll for any scrollable elements that have ids (most stable key).
+                    curPage.querySelectorAll('[id]').forEach(function (el) {
+                        try {
+                            if (!el) return;
+                            const st = el.scrollTop || 0;
+                            if (st > 0) state.byId[el.id] = st;
+                        } catch { }
+                    });
+
+                    // Preserve scroll for marked containers (stable across swaps).
+                    curPage.querySelectorAll('[data-preserve-scroll]').forEach(function (el) {
+                        try {
+                            const key = el.getAttribute('data-preserve-scroll');
+                            if (!key) return;
+                            state.byKey[key] = el.scrollTop || 0;
+                        } catch { }
+                    });
+
+                    // Also preserve for common scroll containers by index (fallback).
+                    curPage.querySelectorAll('.ts-table-scroll').forEach(function (el) {
+                        try { state.tableScrollTops.push(el.scrollTop || 0); } catch { state.tableScrollTops.push(0); }
+                    });
+                } catch { }
+                return state;
+            }
+
+            function restoreScrollState(nextRoot, state) {
+                if (!state) return;
+                try {
+                    // Restore window scroll first (prevents visible jump while restoring inner scrolls).
+                    if (typeof state.winY === 'number') window.scrollTo(0, state.winY);
+                } catch { }
+
+                try {
+                    if (nextRoot && state.byId) {
+                        Object.keys(state.byId).forEach(function (id) {
+                            const el = nextRoot.querySelector('#' + CSS.escape(id));
+                            if (el) el.scrollTop = state.byId[id];
+                        });
                     }
-                    old.parentNode.replaceChild(s, old);
+                } catch { }
+
+                try {
+                    if (nextRoot && state.byKey) {
+                        Object.keys(state.byKey).forEach(function (key) {
+                            const el = nextRoot.querySelector('[data-preserve-scroll="' + CSS.escape(key) + '"]');
+                            if (el) el.scrollTop = state.byKey[key];
+                        });
+                    }
+                } catch { }
+
+                try {
+                    if (nextRoot && Array.isArray(state.tableScrollTops) && state.tableScrollTops.length) {
+                        const els = nextRoot.querySelectorAll('.ts-table-scroll');
+                        for (let i = 0; i < els.length && i < state.tableScrollTops.length; i++) {
+                            els[i].scrollTop = state.tableScrollTops[i];
+                        }
+                    }
+                } catch { }
+            }
+
+            function captureFocusState() {
+                try {
+                    const curPage = main.querySelector('.ts-page');
+                    const a = document.activeElement;
+                    if (!curPage || !a || !curPage.contains(a)) return null;
+                    const tag = (a.tagName || '').toLowerCase();
+                    const id = a.id || '';
+                    const name = a.getAttribute ? (a.getAttribute('name') || '') : '';
+                    const key = a.getAttribute ? (a.getAttribute('data-focus-key') || '') : '';
+                    let sel = null;
+                    if (a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement) {
+                        try {
+                            sel = {
+                                start: typeof a.selectionStart === 'number' ? a.selectionStart : null,
+                                end: typeof a.selectionEnd === 'number' ? a.selectionEnd : null
+                            };
+                        } catch { }
+                    }
+                    return { tag, id, name, key, sel };
+                } catch {
+                    return null;
+                }
+            }
+
+            function restoreFocusState(nextRoot, focusState) {
+                if (!nextRoot || !focusState) return;
+                try {
+                    let el = null;
+                    if (focusState.id) el = nextRoot.querySelector('#' + CSS.escape(focusState.id));
+                    if (!el && focusState.key) el = nextRoot.querySelector('[data-focus-key="' + CSS.escape(focusState.key) + '"]');
+                    if (!el && focusState.name) el = nextRoot.querySelector(focusState.tag + '[name="' + CSS.escape(focusState.name) + '"]');
+                    if (!el) return;
+                    if (el.focus) el.focus({ preventScroll: true });
+                    if (focusState.sel && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+                        const s = focusState.sel.start;
+                        const e = focusState.sel.end;
+                        if (typeof s === 'number' && typeof e === 'number') {
+                            try { el.setSelectionRange(s, e); } catch { }
+                        }
+                    }
+                } catch { }
+            }
+
+            function executeScripts(container) {
+                if (!container) return;
+                container.querySelectorAll('script').forEach(function (old) {
+                    try {
+                        const s = document.createElement('script');
+                        if (old.src) {
+                            s.src = old.src;
+                            if (old.async) s.async = true;
+                            if (old.defer) s.defer = true;
+                        } else {
+                            s.textContent = old.textContent;
+                        }
+                        old.parentNode.replaceChild(s, old);
+                    } catch (err) {
+                        console.error('executeScripts error for script:', old, err);
+                    }
                 });
+            }
+
+            function isPosCartAction(form) {
+                return false; /* Disable right-only, we do a smooth 2-column swap for everything */
+            }
+
+            function mountPosRightPanelOnly(html) {
+                return false;
+            }
+
+            function mountFragmentHtml(html, opts) {
+                const options = opts || {};
+                const preserveScroll = !!options.preserveScroll;
+                const scrollState = preserveScroll ? captureScrollState() : null;
+                const focusState = preserveScroll ? captureFocusState() : null;
+                const curPageForLock = preserveScroll ? main.querySelector('.ts-page') : null;
+                let lockedHeight = null;
+                try {
+                    if (curPageForLock) {
+                        const r = curPageForLock.getBoundingClientRect();
+                        lockedHeight = Math.max(0, Math.round(r.height));
+                        if (lockedHeight > 0) {
+                            curPageForLock.style.minHeight = lockedHeight + 'px';
+                        }
+                    }
+                } catch { }
+
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const root = doc.querySelector('#ts-fragment-root') || doc.body.firstElementChild;
+                if (!root) { main.innerHTML = html; return; }
+
+                const imported = document.importNode(root, true);
+                if (preserveScroll) {
+                    imported.classList.remove('ts-anim-in');
+                    imported.classList.add('ts-page--spa-swap');
+                }
+                const curPage = main.querySelector('.ts-page');
+                
+                if (curPage) {
+                    const curMain = curPage.querySelector('.ts-shell-main');
+                    const curSide = curPage.querySelector('.ts-shell-side');
+                    const newMain = imported.querySelector('.ts-shell-main');
+                    const newSide = imported.querySelector('.ts-shell-side');
+
+                    if (preserveScroll && curMain && curSide && newMain && newSide) {
+                        curMain.replaceWith(newMain);
+                        curSide.replaceWith(newSide);
+                        try {
+                            executeScripts(main.querySelector('.ts-page'));
+                        } catch (e) {
+                            console.error('executeScripts failed:', e);
+                        }
+                    } else {
+                        curPage.replaceWith(imported);
+                        try {
+                            executeScripts(imported);
+                        } catch (e) {
+                            console.error('executeScripts failed on imported:', e);
+                        }
+                    }
+                } else {
+                    main.innerHTML = '';
+                    main.appendChild(imported);
+                    executeScripts(imported);
+                }
+                if (preserveScroll) {
+                    // Restore scroll after DOM replacement and scripts have run.
+                    restoreScrollState(imported, scrollState);
+                    restoreFocusState(imported, focusState);
+                }
+                // Release height lock on next frame to avoid visible jump.
+                try {
+                    requestAnimationFrame(function () {
+                        imported.style.minHeight = '';
+                    });
+                } catch { }
             }
 
             function updateNavActive() {
@@ -218,8 +428,8 @@
                             a.removeAttribute('aria-current');
                             return;
                         }
-                        const invPath = /\/inventory$/i.test(u.pathname);
-                        if (invPath) {
+                        const isInvPath = /\/inventory$/i.test(u.pathname);
+                        if (isInvPath) {
                             const secA = (u.searchParams.get('section') || 'purchase').toLowerCase();
                             const secCur = (cur.searchParams.get('section') || 'purchase').toLowerCase();
                             if (secA === secCur) {
@@ -238,7 +448,7 @@
 
             function syncNavGroups() {
                 const cur = new URL(window.location.href);
-                const isInv = /\/inventory$/i.test(cur.pathname) || /\/products$/i.test(cur.pathname);
+                const isInv = /\/inventory$/i.test(cur.pathname) || /\/products$/i.test(cur.pathname) || /\/stockcheck$/i.test(cur.pathname);
                 document.querySelectorAll('[data-nav-group="inventory"]').forEach(function (g) {
                     const btn = g.querySelector('[data-nav-parent-toggle]');
                     if (isInv) {
@@ -257,19 +467,20 @@
                 });
             }
 
-            function swapNavContent(href) {
+            function swapNavContent(href, opts) {
+                const options = opts || {};
                 const fetchUrl = new URL(href, window.location.origin);
-                fetchUrl.searchParams.set('fragment', '1');
                 return fetch(fetchUrl.toString(), {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-SPA-Fragment': '1',
                         'Accept': 'text/html'
                     }
                 }).then(function (res) {
                     if (!res.ok) throw new Error('nav fetch failed');
                     return res.text();
                 }).then(function (html) {
-                    mountFragmentHtml(html);
+                    mountFragmentHtml(html, { preserveScroll: !!options.smooth });
                     const root = main.querySelector('#ts-fragment-root');
                     if (root && root.dataset.pageTitle) {
                         document.title = root.dataset.pageTitle + ' - Toy Shop Management';
@@ -295,24 +506,29 @@
                 body.classList.remove('ts-mobile-nav-open');
             });
 
-            document.querySelectorAll('a[data-nav="tab"]').forEach(function (a) {
-                a.addEventListener('click', function (e) {
-                    if (e.defaultPrevented) return;
-                    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-                    const href = a.getAttribute('href');
-                    if (!href || href === '#') return;
-                    e.preventDefault();
-                    swapNavContent(href).then(function () {
-                        const clean = new URL(href, window.location.origin);
-                        clean.searchParams.delete('fragment');
-                        history.pushState({ spa: true }, '', clean.pathname + clean.search);
-                        updateNavActive();
-                        syncNavGroups();
-                        body.classList.remove('ts-mobile-nav-open');
-                        window.scrollTo(0, 0);
-                    }).catch(function () {
-                        window.location.href = href;
-                    });
+            document.addEventListener('click', function (e) {
+                const a = e.target.closest('a[data-nav="tab"]');
+                if (!a) return;
+                if (e.defaultPrevented) return;
+                if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+                
+                const href = a.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('javascript:')) return;
+                
+                const isSmooth = a.hasAttribute('data-nav-smooth');
+                
+                e.preventDefault();
+                swapNavContent(href, { smooth: isSmooth }).then(function () {
+                    const clean = new URL(href, window.location.origin);
+                    history.pushState({ spa: true }, '', clean.pathname + clean.search);
+                    updateNavActive();
+                    syncNavGroups();
+                    if (document.body.classList.contains('ts-mobile-nav-open')) {
+                        document.body.classList.remove('ts-mobile-nav-open');
+                    }
+                    if (!isSmooth) window.scrollTo(0, 0);
+                }).catch(function () {
+                    window.location.href = href;
                 });
             });
 
@@ -343,28 +559,23 @@
                 const form = e.target;
                 if (!(form instanceof HTMLFormElement)) return;
                 if (!form.hasAttribute('data-spa-form')) return;
-                /* POS: name search is client-side only (Pos.cshtml); do not POST fragment if input is not a barcode. */
-                if (form.id === 'posSearchForm') {
-                    const input = document.getElementById('posSearchInput');
-                    if (input) {
-                        const v = (input.value || '').trim();
-                        if (v) {
-                            const digits = v.replace(/\D/g, '');
-                            const looksLikeBarcode = /^[\d\s\-\.]+$/.test(v) && digits.length >= 4;
-                            if (!looksLikeBarcode) {
-                                e.preventDefault();
-                                return;
-                            }
-                        }
-                    }
+                if (pendingSpaForms.has(form)) {
+                    e.preventDefault();
+                    return;
                 }
                 e.preventDefault();
+                pendingSpaForms.add(form);
                 const fd = new FormData(form);
+                const usp = new URLSearchParams();
+                fd.forEach(function(value, key) {
+                    usp.append(key, value);
+                });
+                
                 const action = form.action || window.location.href;
                 const method = (form.getAttribute('method') || 'POST').toUpperCase();
                 fetch(action, {
                     method: method,
-                    body: fd,
+                    body: usp,
                     credentials: 'same-origin',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -382,17 +593,32 @@
                             throw new Error('unexpected json');
                         });
                     }
-                    if (!res.ok) throw new Error('form fetch failed');
+                    if (!res.ok) {
+                        return res.text().then(function (errTxt) {
+                            let errTitle = errTxt.substring(0, 100) + '...';
+                            try {
+                                const m = errTxt.match(/<title>([^<]+)<\/title>/i);
+                                if (m && m[1]) errTitle = m[1].trim();
+                            } catch (e) { }
+                            throw new Error('HTTP ' + res.status + ' - ' + errTitle);
+                        });
+                    }
                     return res.text();
                 }).then(function (html) {
                     if (typeof html !== 'string') return;
-                    mountFragmentHtml(html);
+                    if (isPosCartAction(form) && mountPosRightPanelOnly(html)) {
+                        return;
+                    }
+                    mountFragmentHtml(html, { preserveScroll: true });
                     const root = main.querySelector('#ts-fragment-root');
                     if (root && root.dataset.pageTitle) {
                         document.title = root.dataset.pageTitle + ' - Toy Shop Management';
                     }
-                }).catch(function () {
-                    form.submit();
+                }).catch(function (err) {
+                    console.error('SPA form error:', err);
+                    alert('SPA Error: ' + err.message);
+                }).finally(function () {
+                    pendingSpaForms.delete(form);
                 });
             });
 
@@ -417,7 +643,7 @@
                     if (!res.ok) throw new Error('spa get failed');
                     return res.text();
                 }).then(function (html) {
-                    mountFragmentHtml(html);
+                    mountFragmentHtml(html, { preserveScroll: true });
                     const root = main.querySelector('#ts-fragment-root');
                     if (root && root.dataset.pageTitle) {
                         document.title = root.dataset.pageTitle + ' - Toy Shop Management';

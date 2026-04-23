@@ -17,6 +17,7 @@ public sealed class ProductFormVm
     public decimal SellPrice { get; set; }
 
     public string? ExistingImagePath { get; set; }
+    public string? BarcodeImagePath { get; set; }
     public IFormFile? ImageFile { get; set; }
 }
 

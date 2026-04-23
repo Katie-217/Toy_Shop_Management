@@ -37,9 +37,36 @@ BEGIN
     );
 END";
 
+        const string createAudit = @"
+IF OBJECT_ID('dbo.StockAuditHeaders', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.StockAuditHeaders(
+        AuditID INT IDENTITY(1,1) PRIMARY KEY,
+        AuditDate DATETIME NOT NULL DEFAULT(GETDATE()),
+        CreatedByUserID INT NULL,
+        Note NVARCHAR(500) NULL
+    );
+END
+
+IF OBJECT_ID('dbo.StockAuditLines', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.StockAuditLines(
+        LineID INT IDENTITY(1,1) PRIMARY KEY,
+        AuditID INT NOT NULL,
+        ProductID INT NOT NULL,
+        SystemQty INT NOT NULL,
+        PhysicalQty INT NOT NULL,
+        Difference INT NOT NULL,
+        LineNote NVARCHAR(500) NULL,
+        CONSTRAINT FK_StockAuditLines_Headers FOREIGN KEY (AuditID)
+            REFERENCES dbo.StockAuditHeaders(AuditID)
+            ON DELETE CASCADE
+    );
+END";
+
         await using var conn = db.CreateConnection();
         await conn.OpenAsync();
-        await using var cmd = new SqlCommand(createHeaders + createLines, conn);
+        await using var cmd = new SqlCommand(createHeaders + createLines + createAudit, conn);
         await cmd.ExecuteNonQueryAsync();
     }
 
@@ -424,6 +451,164 @@ VALUES (@mid, @pid, @qty, @price);";
         catch
         {
             try { tx.Rollback(); } catch { }
+            throw;
+        }
+    }
+
+    public async Task<List<StockAuditHeaderVm>> GetStockAuditHistoryAsync()
+    {
+        const string sql = @"
+SELECT 
+    h.AuditID, 
+    h.AuditDate, 
+    h.Note, 
+    u.FullName AS CreatedByUserName,
+    (SELECT COUNT(*) FROM dbo.StockAuditLines l WHERE l.AuditID = h.AuditID) AS ItemCount
+FROM dbo.StockAuditHeaders h
+LEFT JOIN dbo.Users u ON h.CreatedByUserID = u.UserID
+ORDER BY h.AuditDate DESC";
+
+        await using var conn = db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand(sql, conn);
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.CloseConnection);
+
+        var list = new List<StockAuditHeaderVm>();
+        while (await reader.ReadAsync())
+        {
+            list.Add(new StockAuditHeaderVm
+            {
+                AuditId = reader.GetInt32(reader.GetOrdinal("AuditID")),
+                AuditDate = reader.GetDateTime(reader.GetOrdinal("AuditDate")),
+                Note = reader["Note"]?.ToString() ?? "",
+                CreatedByUserName = reader["CreatedByUserName"]?.ToString() ?? "System",
+                ItemCount = reader.GetInt32(reader.GetOrdinal("ItemCount"))
+            });
+        }
+        return list;
+    }
+
+    public async Task<List<StockAuditLineVm>> GetStockAuditLinesAsync(int auditId)
+    {
+        const string sql = @"
+SELECT 
+    l.LineID, 
+    l.ProductID, 
+    p.Name AS ProductName, 
+    p.Barcode,
+    l.SystemQty, 
+    l.PhysicalQty, 
+    l.Difference, 
+    l.LineNote
+FROM dbo.StockAuditLines l
+JOIN dbo.Products p ON l.ProductID = p.ProductID
+WHERE l.AuditID = @auditId
+ORDER BY p.Name";
+
+        await using var conn = db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@auditId", auditId);
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.CloseConnection);
+
+        var list = new List<StockAuditLineVm>();
+        while (await reader.ReadAsync())
+        {
+            list.Add(new StockAuditLineVm
+            {
+                ProductId = reader.GetInt32(reader.GetOrdinal("ProductID")),
+                ProductName = reader["ProductName"]?.ToString() ?? "",
+                Barcode = reader["Barcode"]?.ToString() ?? "",
+                SystemQty = reader.GetInt32(reader.GetOrdinal("SystemQty")),
+                PhysicalQty = reader.GetInt32(reader.GetOrdinal("PhysicalQty")),
+                Difference = reader.GetInt32(reader.GetOrdinal("Difference")),
+                Note = reader["LineNote"]?.ToString() ?? ""
+            });
+        }
+        return list;
+    }
+
+    public async Task<List<StockCheckVm>> GetStockCheckDataAsync()
+    {
+        const string sql = @"
+SELECT
+    p.ProductID,
+    p.Barcode,
+    p.Name,
+    p.StockQuantity AS SystemStock,
+    ISNULL((
+        SELECT SUM(od.Quantity)
+        FROM OrderDetails od
+        JOIN Orders o ON od.OrderID = o.OrderID
+        WHERE od.ProductID = p.ProductID
+          AND CAST(o.OrderDate AS DATE) = CAST(GETDATE() AS DATE)
+    ), 0) AS SoldToday
+FROM Products p
+WHERE p.IsActive = 1
+ORDER BY p.Name";
+
+        await using var conn = db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand(sql, conn);
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.CloseConnection);
+
+        var list = new List<StockCheckVm>();
+        while (await reader.ReadAsync())
+        {
+            list.Add(new StockCheckVm
+            {
+                ProductId = reader.GetInt32(reader.GetOrdinal("ProductID")),
+                Barcode = reader["Barcode"]?.ToString() ?? "",
+                Name = reader["Name"]?.ToString() ?? "",
+                SystemStock = reader["SystemStock"] == DBNull.Value ? 0 : Convert.ToInt32(reader["SystemStock"]),
+                SoldToday = reader["SoldToday"] == DBNull.Value ? 0 : Convert.ToInt32(reader["SoldToday"])
+            });
+        }
+
+        return list;
+    }
+
+    public async Task<int> SaveStockAuditAsync(StockAuditSaveVm model, int? userId)
+    {
+        await using var conn = db.CreateConnection();
+        await conn.OpenAsync();
+        await using var trans = await conn.BeginTransactionAsync();
+
+        try
+        {
+            const string insertHeader = @"
+INSERT INTO dbo.StockAuditHeaders (AuditDate, CreatedByUserID, Note)
+VALUES (GETDATE(), @userId, @note);
+SELECT SCOPE_IDENTITY();";
+
+            await using var cmdHeader = new SqlCommand(insertHeader, conn, (SqlTransaction)trans);
+            cmdHeader.Parameters.AddWithValue("@userId", (object?)userId ?? DBNull.Value);
+            cmdHeader.Parameters.AddWithValue("@note", (object?)model.Note ?? DBNull.Value);
+
+            var auditId = Convert.ToInt32(await cmdHeader.ExecuteScalarAsync());
+
+            const string insertLine = @"
+INSERT INTO dbo.StockAuditLines (AuditID, ProductID, SystemQty, PhysicalQty, Difference, LineNote)
+VALUES (@auditId, @productId, @systemQty, @physicalQty, @diff, @note);";
+
+            foreach (var item in model.Items)
+            {
+                await using var cmdLine = new SqlCommand(insertLine, conn, (SqlTransaction)trans);
+                cmdLine.Parameters.AddWithValue("@auditId", auditId);
+                cmdLine.Parameters.AddWithValue("@productId", item.ProductId);
+                cmdLine.Parameters.AddWithValue("@systemQty", item.SystemQty);
+                cmdLine.Parameters.AddWithValue("@physicalQty", item.PhysicalQty);
+                cmdLine.Parameters.AddWithValue("@diff", item.Difference);
+                cmdLine.Parameters.AddWithValue("@note", (object?)item.Note ?? DBNull.Value);
+                await cmdLine.ExecuteNonQueryAsync();
+            }
+
+            await trans.CommitAsync();
+            return auditId;
+        }
+        catch
+        {
+            await trans.RollbackAsync();
             throw;
         }
     }

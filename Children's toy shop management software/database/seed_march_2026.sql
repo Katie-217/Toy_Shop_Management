@@ -2,7 +2,14 @@ USE ToyshopDB_MVC;
 GO
 
 SET NOCOUNT ON;
-SET XACT_ABORT ON;
+GO
+
+-- Clean up temp tables if they exist (to allow multiple runs in same session)
+IF OBJECT_ID('tempdb..#CategorySeed') IS NOT NULL DROP TABLE #CategorySeed;
+IF OBJECT_ID('tempdb..#SupplierSeed') IS NOT NULL DROP TABLE #SupplierSeed;
+IF OBJECT_ID('tempdb..#ProductSeed') IS NOT NULL DROP TABLE #ProductSeed;
+IF OBJECT_ID('tempdb..#EmployeeSeed') IS NOT NULL DROP TABLE #EmployeeSeed;
+IF OBJECT_ID('tempdb..#SeedEmployeeMap') IS NOT NULL DROP TABLE #SeedEmployeeMap;
 
 BEGIN TRY
     BEGIN TRAN;
@@ -14,6 +21,8 @@ BEGIN TRY
         ALTER TABLE dbo.Products ADD [Description] NVARCHAR(500) NULL;
     IF COL_LENGTH('dbo.Products', 'ImagePath') IS NULL
         ALTER TABLE dbo.Products ADD [ImagePath] NVARCHAR(260) NULL;
+    IF COL_LENGTH('dbo.Products', 'BarcodeImagePath') IS NULL
+        ALTER TABLE dbo.Products ADD [BarcodeImagePath] NVARCHAR(260) NULL;
 
     IF COL_LENGTH('dbo.Customers', 'Points') IS NULL
         ALTER TABLE dbo.Customers ADD [Points] INT NOT NULL CONSTRAINT DF_Customers_Points DEFAULT(0);
@@ -29,6 +38,57 @@ BEGIN TRY
         ALTER TABLE dbo.Orders ADD [Status] NVARCHAR(50) NULL;
     IF COL_LENGTH('dbo.Orders', 'PaymentMethod') IS NULL
         ALTER TABLE dbo.Orders ADD [PaymentMethod] NVARCHAR(50) NULL;
+
+    /* 2026-04-14: Ensure Users table exists for Auth & RBAC */
+    IF OBJECT_ID('dbo.Users', 'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.Users (
+            UserID INT IDENTITY(1,1) PRIMARY KEY,
+            Username NVARCHAR(50) NOT NULL UNIQUE,
+            PasswordHash NVARCHAR(255) NOT NULL,
+            FullName NVARCHAR(150) NOT NULL,
+            Role NVARCHAR(20) NOT NULL,
+            EmployeeID INT NULL,
+            CreatedAt DATETIME DEFAULT GETDATE()
+        );
+    END
+    ELSE
+    BEGIN
+        -- Robustness: Check Role column type if it exists
+        IF TYPE_NAME(COLUMNPROPERTY(OBJECT_ID('dbo.Users'), 'Role', 'SystemType')) = 'int'
+        BEGIN
+            -- Drop constraints that might block the ALTER COLUMN
+            -- (Default constraints, Check constraints)
+            DECLARE @DropSql NVARCHAR(MAX) = N'';
+            SELECT @DropSql += N'ALTER TABLE dbo.Users DROP CONSTRAINT ' + QUOTENAME(d.name) + N';'
+            FROM sys.default_constraints d
+            WHERE d.parent_object_id = OBJECT_ID('dbo.Users')
+              AND d.parent_column_id = COLUMNPROPERTY(object_id('dbo.Users'), 'Role', 'ColumnId');
+
+            SELECT @DropSql += N'ALTER TABLE dbo.Users DROP CONSTRAINT ' + QUOTENAME(c.name) + N';'
+            FROM sys.check_constraints c
+            WHERE c.parent_object_id = OBJECT_ID('dbo.Users')
+              AND c.parent_column_id = COLUMNPROPERTY(object_id('dbo.Users'), 'Role', 'ColumnId');
+
+            IF LEN(@DropSql) > 0 EXEC sp_executesql @DropSql;
+
+            -- Now we can safely alter the column
+            ALTER TABLE dbo.Users ALTER COLUMN Role NVARCHAR(20) NOT NULL;
+        END
+
+        -- Robustness: Ensure EmployeeID is NULLABLE (for system accounts like admin)
+        IF COLUMNPROPERTY(OBJECT_ID('dbo.Users'), 'EmployeeID', 'AllowsNull') = 0
+        BEGIN
+            ALTER TABLE dbo.Users ALTER COLUMN EmployeeID INT NULL;
+        END
+    END
+
+    -- Seed default Admin if missing
+    IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Username = 'admin')
+    BEGIN
+        INSERT INTO dbo.Users (Username, PasswordHash, FullName, Role)
+        VALUES ('admin', 'admin@', 'System Administrator', 'Admin');
+    END;
 
     IF OBJECT_ID('dbo.StockMovementHeaders', 'U') IS NULL
     BEGIN
@@ -344,7 +404,7 @@ BEGIN TRY
     (N'Hoang Minh Khang',N'0910000030',N'49 Tran Quang Khai, District 1, HCMC',0,1);
 
     /* ------------------------------------------------------------
-       7) March order data (10 orders/day, all month)
+       7) Spring 2026 order data (March - May 2026)
     ------------------------------------------------------------ */
     DECLARE @Users TABLE (RN INT IDENTITY(1,1), UserID INT);
     IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL
@@ -371,7 +431,7 @@ BEGIN TRY
     DECLARE @d DATE = '2026-03-01';
     DECLARE @globalNo INT = 0;
 
-    WHILE @d <= '2026-03-31'
+    WHILE @d <= '2026-05-31'
     BEGIN
         DECLARE @n INT = 1;
         WHILE @n <= 10
@@ -462,97 +522,130 @@ BEGIN TRY
     /* ------------------------------------------------------------
        9) Inventory import records + return records
     ------------------------------------------------------------ */
+    -- Clear old movements to ensure clean distinct tabs
+    DELETE FROM dbo.StockMovementLines;
+    DELETE FROM dbo.StockMovementHeaders;
+    DBCC CHECKIDENT ('dbo.StockMovementLines', RESEED, 0);
+    DBCC CHECKIDENT ('dbo.StockMovementHeaders', RESEED, 0);
+
     DECLARE @batch INT = 1;
-    WHILE @batch <= 10
+    WHILE @batch <= 25
     BEGIN
         DECLARE @inHeaderId INT;
-        DECLARE @inNote NVARCHAR(255) = N'PO batch import #' + CAST(@batch AS NVARCHAR(20));
-        DECLARE @inCreatedAt DATETIME = DATEADD(DAY, (@batch * 2) - 2, CAST('2026-03-01' AS DATETIME));
-        DECLARE @inReceipt NVARCHAR(260) = N'/uploads/invoices/po-202603-' + RIGHT('00' + CAST(@batch AS NVARCHAR(2)), 2) + N'.pdf';
-        DECLARE @sqlInsertInHeader NVARCHAR(MAX) = N'
-            INSERT INTO dbo.StockMovementHeaders
-                (MovementType, AffectsStock, Note, CreatedByUserID, CreatedAt, ReceiptAttachment, PreparedBy, ApprovedBy)
-            VALUES
-                (N''IN'', 0, @Note, @CreatedByUserID, @CreatedAt, @ReceiptAttachment, @PreparedBy, @ApprovedBy);
-            SELECT @NewMovementId = CAST(SCOPE_IDENTITY() AS INT);';
-        EXEC sp_executesql
-            @sqlInsertInHeader,
-            N'@Note NVARCHAR(255), @CreatedByUserID INT, @CreatedAt DATETIME, @ReceiptAttachment NVARCHAR(260), @PreparedBy NVARCHAR(120), @ApprovedBy NVARCHAR(120), @NewMovementId INT OUTPUT',
-            @Note = @inNote,
-            @CreatedByUserID = @FallbackUserId,
-            @CreatedAt = @inCreatedAt,
-            @ReceiptAttachment = @inReceipt,
-            @PreparedBy = N'Procurement Team',
-            @ApprovedBy = N'Store Manager',
-            @NewMovementId = @inHeaderId OUTPUT;
+        DECLARE @inNote NVARCHAR(255) = N'Purchase Order from Lego/Mattel #' + CAST(@batch AS NVARCHAR(20));
+        DECLARE @inCreatedAt DATETIME = DATEADD(DAY, -@batch, GETDATE());
+        
+        INSERT INTO dbo.StockMovementHeaders (MovementType, AffectsStock, Note, CreatedByUserID, CreatedAt)
+        VALUES (N'IN', 1, @inNote, @FallbackUserId, @inCreatedAt);
+        SET @inHeaderId = SCOPE_IDENTITY();
 
-        DECLARE @line INT = 1;
-        WHILE @line <= 3
-        BEGIN
-            DECLARE @prn2 INT = ((@batch - 1) * 3 + @line);
-            IF @prn2 > 30 SET @prn2 = @prn2 - 30;
-
-            INSERT INTO dbo.StockMovementLines(MovementID, ProductID, Quantity, UnitPrice)
-            SELECT
-                @inHeaderId,
-                ProductID,
-                (12 + ((@batch + @line) % 9)),
-                ImportPrice
-            FROM @ProductMap
-            WHERE RN = @prn2;
-
-            SET @line += 1;
-        END;
+        -- Add 2-4 items per batch
+        INSERT INTO dbo.StockMovementLines(MovementID, ProductID, Quantity, UnitPrice)
+        SELECT TOP (2 + (@batch % 3))
+            @inHeaderId, ProductID, (10 + @batch), ImportPrice
+        FROM dbo.Products
+        WHERE IsActive = 1
+        ORDER BY NEWID();
 
         SET @batch += 1;
     END;
 
     DECLARE @returnBatch INT = 1;
-    WHILE @returnBatch <= 8
+    WHILE @returnBatch <= 12
     BEGIN
         DECLARE @retHeaderId INT;
-        DECLARE @retMethod NVARCHAR(20) = CASE WHEN (@returnBatch % 2) = 0 THEN N'VNPay' ELSE N'Cash' END;
+        DECLARE @retNote NVARCHAR(255) = N'Return to supplier - Defect batch #' + CAST(@returnBatch AS NVARCHAR(20));
+        DECLARE @retCreatedAt DATETIME = DATEADD(DAY, -(@returnBatch * 2), GETDATE());
 
-        DECLARE @retNote NVARCHAR(255) = N'Defective product return #' + CAST(@returnBatch AS NVARCHAR(20));
-        DECLARE @retCreatedAt DATETIME = DATEADD(DAY, (@returnBatch * 3), CAST('2026-03-01' AS DATETIME));
-        DECLARE @retEvidence NVARCHAR(260) = N'/uploads/returns/defect-202603-' + RIGHT('00' + CAST(@returnBatch AS NVARCHAR(2)), 2) + N'.jpg';
-        DECLARE @retRefundAmount DECIMAL(18,2) = (450000 + (@returnBatch * 55000));
-        DECLARE @sqlInsertOutHeader NVARCHAR(MAX) = N'
-            INSERT INTO dbo.StockMovementHeaders
-                (MovementType, AffectsStock, Note, CreatedByUserID, CreatedAt, Reason, EvidenceImagePath, PreparedBy, ApprovedBy, RefundAmount, RefundMethod)
-            VALUES
-                (N''OUT'', 0, @Note, @CreatedByUserID, @CreatedAt, @Reason, @EvidenceImagePath, @PreparedBy, @ApprovedBy, @RefundAmount, @RefundMethod);
-            SELECT @NewMovementId = CAST(SCOPE_IDENTITY() AS INT);';
-        EXEC sp_executesql
-            @sqlInsertOutHeader,
-            N'@Note NVARCHAR(255), @CreatedByUserID INT, @CreatedAt DATETIME, @Reason NVARCHAR(255), @EvidenceImagePath NVARCHAR(260), @PreparedBy NVARCHAR(120), @ApprovedBy NVARCHAR(120), @RefundAmount DECIMAL(18,2), @RefundMethod NVARCHAR(20), @NewMovementId INT OUTPUT',
-            @Note = @retNote,
-            @CreatedByUserID = @FallbackUserId,
-            @CreatedAt = @retCreatedAt,
-            @Reason = N'Defect found during quality check',
-            @EvidenceImagePath = @retEvidence,
-            @PreparedBy = N'Inventory Clerk',
-            @ApprovedBy = N'Store Manager',
-            @RefundAmount = @retRefundAmount,
-            @RefundMethod = @retMethod,
-            @NewMovementId = @retHeaderId OUTPUT;
+        INSERT INTO dbo.StockMovementHeaders (MovementType, AffectsStock, Note, CreatedByUserID, CreatedAt)
+        VALUES (N'OUT', 1, @retNote, @FallbackUserId, @retCreatedAt);
+        SET @retHeaderId = SCOPE_IDENTITY();
 
         INSERT INTO dbo.StockMovementLines(MovementID, ProductID, Quantity, UnitPrice)
-        SELECT
-            @retHeaderId,
-            ProductID,
-            (1 + (@returnBatch % 3)),
-            ImportPrice
-        FROM @ProductMap
-        WHERE RN = ((@returnBatch * 4) % 30) + 1;
+        SELECT TOP 2
+            @retHeaderId, ProductID, (1 + (@returnBatch % 3)), ImportPrice
+        FROM dbo.Products
+        WHERE IsActive = 1
+        ORDER BY NEWID();
 
         SET @returnBatch += 1;
     END;
 
+    -- Final sync of StockQuantity based on movements
+    -- (This ensures System Stock in UI is realistic)
+    UPDATE p
+    SET p.StockQuantity = ISNULL(MoveSum.Total, 0)
+    FROM dbo.Products p
+    LEFT JOIN (
+        SELECT l.ProductID, 
+               SUM(CASE WHEN h.MovementType = 'IN' THEN l.Quantity ELSE -l.Quantity END) as Total
+        FROM dbo.StockMovementLines l
+        JOIN dbo.StockMovementHeaders h ON l.MovementID = h.MovementID
+        WHERE h.AffectsStock = 1
+        GROUP BY l.ProductID
+    ) MoveSum ON p.ProductID = MoveSum.ProductID;
+
     COMMIT TRAN;
+    PRINT 'Seed successful: Products, Staff, Customers, and Inventory Movements updated.';
 END TRY
 BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+    PRINT 'Error: ' + ERROR_MESSAGE();
     THROW;
 END CATCH;
 
+
+-- Ensure Stock Audit tables exist
+IF OBJECT_ID('dbo.StockAuditHeaders', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.StockAuditHeaders(
+        AuditID INT IDENTITY(1,1) PRIMARY KEY,
+        AuditDate DATETIME NOT NULL DEFAULT(GETDATE()),
+        CreatedByUserID INT NULL,
+        Note NVARCHAR(500) NULL
+    );
+END
+
+IF OBJECT_ID('dbo.StockAuditLines', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.StockAuditLines(
+        LineID INT IDENTITY(1,1) PRIMARY KEY,
+        AuditID INT NOT NULL,
+        ProductID INT NOT NULL,
+        SystemQty INT NOT NULL,
+        PhysicalQty INT NOT NULL,
+        Difference INT NOT NULL,
+        LineNote NVARCHAR(500) NULL,
+        CONSTRAINT FK_StockAuditLines_Headers FOREIGN KEY (AuditID)
+            REFERENCES dbo.StockAuditHeaders(AuditID)
+            ON DELETE CASCADE
+    );
+END
+
+-- Stock Audit History
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'StockAuditHeaders')
+BEGIN
+    DELETE FROM dbo.StockAuditLines;
+    DELETE FROM dbo.StockAuditHeaders;
+    
+    -- Audit 1: Yesterday
+    INSERT INTO dbo.StockAuditHeaders (AuditDate, CreatedByUserID, Note)
+    VALUES (DATEADD(day, -1, GETDATE()), 1, N'End of day audit - 1st floor');
+    DECLARE @AuditID1 INT = SCOPE_IDENTITY();
+    
+    INSERT INTO dbo.StockAuditLines (AuditID, ProductID, SystemQty, PhysicalQty, Difference, LineNote)
+    VALUES 
+    (@AuditID1, 1, 39, 39, 0, N'Match'),
+    (@AuditID1, 2, 77, 75, -2, N'Damaged box found'),
+    (@AuditID1, 3, 58, 58, 0, N'Match');
+
+    -- Audit 2: 2 days ago
+    INSERT INTO dbo.StockAuditHeaders (AuditDate, CreatedByUserID, Note)
+    VALUES (DATEADD(day, -2, GETDATE()), 1, N'Weekly full check');
+    DECLARE @AuditID2 INT = SCOPE_IDENTITY();
+    
+    INSERT INTO dbo.StockAuditLines (AuditID, ProductID, SystemQty, PhysicalQty, Difference, LineNote)
+    VALUES 
+    (@AuditID2, 4, 45, 46, 1, N'Found extra unit in back'),
+    (@AuditID2, 5, 13, 13, 0, N'Match');
+END

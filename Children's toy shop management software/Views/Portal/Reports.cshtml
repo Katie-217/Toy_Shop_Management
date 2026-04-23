@@ -1,4 +1,8 @@
 @model Children_s_toy_shop_management_software.Models.Reports.ReportsPageVm
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/tabs/SalesHistory/saleshistory.css" asp-append-version="true" />
+}
 @{
     var periodRevenue = Model.Orders.Sum(x => x.TotalAmount);
     var printedAt = DateTime.Now;
@@ -81,7 +85,7 @@
         <div class="ts-sales-history-revenue">
             [ Total revenue this period: <strong>@periodRevenue.ToString("N0") VND</strong> ]
         </div>
-        <div class="ts-table-scroll">
+        <div class="ts-table-scroll" id="salesHistoryOrdersScroll" data-preserve-scroll="sales-orders">
             <table class="table table-sm align-middle mb-0 ts-reports-table">
                 <colgroup>
                     <col style="width:5%;" />
@@ -148,7 +152,7 @@
         </div>
         </div>
 
-    <div class="ts-shell-side ts-card ts-sales-history-receipt-shell" style="padding:14px;">
+    <div class="ts-shell-side ts-card ts-sales-history-receipt-shell" style="padding:14px;" id="salesHistoryReceiptShell" data-preserve-scroll="sales-receipt">
         @if (Model.SelectedOrder == null)
         {
             <div class="ts-shell-empty ts-placeholder" style="height:min(440px, 55vh); border:none; background:transparent;">
@@ -159,7 +163,10 @@
         {
             <partial name="_BillReceipt" model="reportReceiptVm" />
             <div class="ts-sales-history-actions">
-                <button type="button" class="btn btn-outline-light" onclick="printSalesHistoryReceipt()">Reprint</button>
+                @if (User.IsInRole("Admin"))
+                {
+                    <button type="button" class="btn btn-outline-light" onclick="printSalesHistoryReceipt()">Reprint</button>
+                }
                 <button type="button" class="btn btn-outline-danger" disabled title="Cancel order from history is not enabled yet">Cancel order</button>
             </div>
         }
@@ -205,7 +212,7 @@
 
         const cssLink = doc.createElement('link');
         cssLink.rel = 'stylesheet';
-        cssLink.href = '@Url.Content("~/css/toyshop-dark.css")';
+        cssLink.href = '@Url.Content("~/css/tabs/SalesHistory/saleshistory.css")';
         doc.head.appendChild(cssLink);
 
         const inlineStyle = doc.createElement('style');

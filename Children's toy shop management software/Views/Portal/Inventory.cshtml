@@ -35,10 +35,6 @@
                      : isReturn ? "📋 Return History"
                      : "📋 Stock Out History";
 
-    var emptyText = isPurchase ? "No stock in records found"
-                  : isReturn ? "No return records found"
-                  : "No stock out records found";
-
     var noteLabel = isPurchase ? "Supplier / Note"
                  : isReturn ? "Return Reason / Supplier"
                  : "Customer / Note";
@@ -52,316 +48,280 @@
                     : "danger";
 }
 
-<div class="container-fluid py-3">
+@section Styles {
+    <link rel="stylesheet" href="~/css/tabs/Inventory/inventory.css" asp-append-version="true" />
+}
 
+<div class="ts-shell-page ts-shell-page--inventory ts-shell-page--@Model.Section">
+    
     <!-- HEADER -->
-    <div class="card bg-dark text-white border-0 shadow-sm mb-3">
-        <div class="card-body d-flex justify-content-between align-items-center">
+    <div class="ts-shell-toolbar" style="margin-bottom:14px; border-bottom: 1px solid rgba(255,255,255,.05); border-radius:18px 18px 0 0;">
+        <div class="d-flex justify-content-between align-items-center" style="padding: 10px 16px;">
             <div>
-                <h3 class="mb-1">@pageTitle</h3>
-                <small class="text-light opacity-75">@pageDesc</small>
+                <h3 style="margin:0; font-size:18px; font-weight:800; letter-spacing:.2px;">@pageTitle</h3>
+                <div class="ts-page-hint">@pageDesc</div>
             </div>
-
-            <a class="btn btn-outline-light"
-                   asp-action="Inventory"
-                   asp-controller="Portal"
-                   asp-route-section="@sec">
-                @btnText
-            </a>
+            <a class="btn btn-outline-light btn-sm" asp-action="Inventory" asp-controller="Portal" asp-route-section="@sec" data-nav="tab">@btnText</a>
         </div>
     </div>
 
-    <div class="row g-3">
-
-        <!-- LEFT -->
-        <div class="col-lg-7">
-            <div class="card bg-dark text-white border-0 shadow-sm">
-                <div class="card-body">
-
-                    <form method="get" asp-action="Inventory" asp-controller="Portal">
-                        <input type="hidden" name="section" value="@sec" />
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-4">
-                                <label class="small mb-1">From</label>
-                                <input class="form-control" type="date"
-                                       name="from"
-                                       value="@Model.From.ToString("yyyy-MM-dd")" />
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="small mb-1">To</label>
-                                <input class="form-control" type="date"
-                                       name="to"
-                                       value="@Model.To.ToString("yyyy-MM-dd")" />
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="small mb-1">Search</label>
-                                <input class="form-control"
-                                       name="q"
-                                       value="@Model.Q"
-                                       placeholder="Note / ID..." />
-                            </div>
-                        </div>
-
-                        <button class="btn btn-primary w-100">
-                            Apply Filter
-                        </button>
-                    </form>
-
-                    <hr class="border-secondary" />
-
-                    <h5 class="mb-3">@historyTitle</h5>
-
-                    <div style="max-height:600px;overflow:auto;">
-                        <table class="table table-dark table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Date</th>
-                                    <th>Items</th>
-                                    <th>Total Qty</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                @foreach (var m in Model.Movements)
-                                {
-                                    <tr>
-                                        <td>#@m.MovementId</td>
-                                        <td>@m.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td>@m.LineCount</td>
-                                        <td>@m.TotalQty</td>
-                                        <td>
-                                            <a class="btn btn-sm btn-outline-info"
-                                                   asp-action="Inventory"
-                                                   asp-controller="Portal"
-                                                   asp-route-id="@m.MovementId"
-                                                   asp-route-section="@sec">
-                                                View
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-
-                                @if (Model.Movements.Count == 0)
-                                {
-                                    <tr>
-                                        <td colspan="5" class="text-center text-secondary">
-                                            @emptyText
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-
+    <div class="ts-shell-toolbar">
+        <form method="get" asp-action="Inventory" asp-controller="Portal" data-spa-form="1">
+            <input type="hidden" name="section" value="@Model.Section" />
+            <div class="ts-shell-toolbar__row">
+                <div style="flex:1; min-width:140px;">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">From</label>
+                    <input class="form-control" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
                 </div>
+                <div style="flex:1; min-width:140px;">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">To</label>
+                    <input class="form-control" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" />
+                </div>
+                <div style="flex:2; min-width:200px;">
+                    <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Search</label>
+                    <input class="form-control" name="q" value="@Model.Q" placeholder="@notePlaceholder" />
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                    <a class="btn btn-outline-light" asp-action="Inventory" asp-controller="Portal" asp-route-section="@Model.Section" data-nav="tab">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="ts-shell-layout ts-inventory-layout">
+        <div class="ts-shell-main ts-card" style="padding:14px;">
+            <div class="ts-card__title" style="margin-bottom:12px;">@historyTitle</div>
+            <div class="ts-table-scroll ts-inventory-table-scroll">
+                <table class="table table-sm align-middle mb-0 ts-inventory-table">
+                    <thead>
+                        <tr>
+                            <th style="width:80px;">ID</th>
+                            <th style="width:140px;">Date</th>
+                            <th style="width:100px;">Type</th>
+                            <th>Note</th>
+                            <th style="width:90px; text-align:center;">Items</th>
+                            <th style="width:90px; text-align:center;">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in Model.Movements)
+                        {
+                            var isSelected = Model.SelectedMovement?.MovementId == m.MovementId;
+                            <tr class="@(isSelected ? "ts-inventory-table__row--selected" : "")" 
+                                style="cursor:pointer;"
+                                onclick="const a = this.querySelector('a'); if(a) a.click();">
+                                <td>
+                                    <a asp-action="Inventory"
+                                       asp-controller="Portal"
+                                       asp-route-id="@m.MovementId"
+                                       asp-route-from="@Model.From.ToString("yyyy-MM-dd")"
+                                       asp-route-to="@Model.To.ToString("yyyy-MM-dd")"
+                                       asp-route-section="@Model.Section"
+                                       asp-route-q="@Model.Q"
+                                       data-nav="tab"
+                                       class="text-decoration-none fw-bold" style="color:inherit;">
+                                        #@m.MovementId
+                                    </a>
+                                </td>
+                                <td class="ts-card__sub">@m.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="badge @(m.MovementType == "IN" ? "bg-success" : "bg-warning")" style="font-size:10px;">
+                                        @m.MovementType
+                                    </span>
+                                </td>
+                                <td class="ts-text-truncate" style="max-width:200px;">@m.Note</td>
+                                <td style="text-align:center;">
+                                    <span class="badge bg-light text-dark" style="border-radius:99px;">@m.LineCount</span>
+                                </td>
+                                <td style="text-align:center; font-weight:800;">@m.TotalQty</td>
+                            </tr>
+                        }
+                        @if (Model.Movements.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4" style="color:rgba(255,255,255,.5);">No records found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- RIGHT -->
-        <div class="col-lg-5">
-            <div class="card bg-dark text-white border-0 shadow-sm">
-                <div class="card-body">
+        <div class="ts-shell-side ts-card" style="padding:14px; overflow:auto;">
+            <div class="ts-card__title" style="margin-bottom:12px;">@formTitle</div>
 
-                    <h4 class="mb-3">@formTitle</h4>
+            <form id="inventoryForm" method="post" asp-action="InventorySave" asp-controller="Portal"
+                  asp-route-from="@Model.From.ToString("yyyy-MM-dd")"
+                  asp-route-to="@Model.To.ToString("yyyy-MM-dd")"
+                  asp-route-q="@Model.Q"
+                  asp-route-section="@Model.Section"
+                  data-spa-form="1">
+                <input type="hidden" asp-for="Form.MovementId" />
+                <input type="hidden" asp-for="Form.MovementType" value="@(isPurchase ? "IN" : "OUT")" />
+                <input type="hidden" asp-for="Form.AffectsStock" value="true" />
 
-                    <form method="post"
-                          asp-action="InventorySave"
-                          asp-controller="Portal"
-                          asp-route-section="@sec"
-                          id="inventoryForm">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">Date</label>
+                        <input class="form-control" asp-for="Form.CreatedAt" type="datetime-local" />
+                    </div>
+                    <div class="col-12">
+                        <label class="ts-card__sub" style="display:block; margin-bottom:6px;">@noteLabel</label>
+                        <input class="form-control" asp-for="Form.Note" placeholder="@notePlaceholder" />
+                    </div>
+                </div>
 
-                        <input type="hidden" asp-for="Form.MovementId" />
-                        <input type="hidden" asp-for="Form.MovementType"
-                               value="@(isPurchase ? "IN" : "OUT")" />
-                        <input type="hidden" asp-for="Form.AffectsStock" value="true" />
+                <div style="height:16px;"></div>
+                
+                <label class="ts-card__sub" style="display:block; margin-bottom:8px;">Order Items</label>
+                <div class="ts-lines-card">
+                    <table class="table table-sm align-middle mb-0 ts-lines-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th style="width:80px;">Qty</th>
+                                <th style="width:120px;">Price</th>
+                                <th style="width:30px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineItemsContainer">
+                            @for (int i = 0; i < Model.Form.Lines.Count; i++)
+                            {
+                                <tr>
+                                    <td style="padding-right:0;">
+                                        <select class="form-select form-select-sm" asp-for="Form.Lines[i].ProductId" style="background:transparent; border:none; font-size:12px;">
+                                            @foreach (var p in Model.Products)
+                                            {
+                                                <option value="@p.ProductId">@p.Name (@p.Barcode)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm qty" asp-for="Form.Lines[i].Quantity" type="number" min="1"
+                                               style="background:transparent; border:none; text-align:center;" oninput="calcTotal()" />
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm price" asp-for="Form.Lines[i].UnitPrice" type="number" step="0.01" 
+                                               style="background:transparent; border:none; text-align:right;" oninput="calcTotal()" />
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm text-danger" style="padding:0; line-height:1;" onclick="removeLine(this)">×</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
-                        <div class="mb-3">
-                            <label class="small mb-1">Date</label>
-                            <input class="form-control"
-                                   asp-for="Form.CreatedAt"
-                                   type="datetime-local" />
-                        </div>
+                <button type="button" class="btn btn-outline-info btn-sm w-100 mt-2" onclick="addLineItem()">+ Add Product</button>
 
-                        <div class="mb-3">
-                            <label class="small mb-1">@noteLabel</label>
-                            <input class="form-control"
-                                   asp-for="Form.Note"
-                                   placeholder="@notePlaceholder" />
-                        </div>
+                <div style="height:16px;"></div>
 
-                        <div class="table-responsive mb-3" style="max-height:420px;overflow:auto;">
-                            <table class="table table-dark align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th width="90">Qty</th>
-                                        <th width="130">Price</th>
-                                        <th width="40"></th>
-                                    </tr>
-                                </thead>
+                <div class="bg-secondary rounded p-3 mb-3" style="background:rgba(255,255,255,.05)!important; border:1px solid rgba(255,255,255,.1);">
+                    <div class="d-flex justify-content-between ts-card__sub">
+                        <span>Total Quantity:</span>
+                        <strong id="totalQty" style="color:#fff;">0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 ts-card__sub">
+                        <span>Total Amount:</span>
+                        <strong id="totalCost" style="color:#fff;">0</strong>
+                    </div>
+                </div>
 
-                                <tbody id="lineItemsContainer">
-                                    @for (int i = 0; i < Model.Form.Lines.Count; i++)
-                                    {
-                                        <tr>
-                                            <td>
-                                                <select class="form-select"
-                                                        asp-for="Form.Lines[i].ProductId">
-                                                    @foreach (var p in Model.Products)
-                                                    {
-                                                        <option value="@p.ProductId">
-                                                            @p.Name (@p.Barcode)
-                                                        </option>
-                                                    }
-                                                </select>
-                                            </td>
-
-                                            <td>
-                                                <input class="form-control qty"
-                                                       asp-for="Form.Lines[i].Quantity"
-                                                       type="number"
-                                                       min="1" />
-                                            </td>
-
-                                            <td>
-                                                <input class="form-control price"
-                                                       asp-for="Form.Lines[i].UnitPrice"
-                                                       type="number"
-                                                       step="0.01" />
-                                            </td>
-
-                                            <td>
-                                                <button type="button"
-                                                        class="btn btn-sm btn-danger"
-                                                        onclick="removeLine(this)">
-                                                    X
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <button type="button"
-                                class="btn btn-outline-info w-100 mb-3"
-                                onclick="addLineItem()">
-                            + Add Product
-                        </button>
-
-                        <div class="bg-secondary rounded p-3 mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span>Total Quantity:</span>
-                                <strong id="totalQty">0</strong>
-                            </div>
-
-                            <div class="d-flex justify-content-between mt-2">
-                                <span>Total Amount:</span>
-                                <strong id="totalCost">0</strong>
-                            </div>
-                        </div>
-
-                        <button class="btn btn-@buttonColor w-100">
+                <div class="row g-2">
+                    <div class="col-6 d-grid">
+                        <button type="submit" class="btn btn-@buttonColor">
                             @saveText
                         </button>
-
-                    </form>
-
-                    @if (!string.IsNullOrWhiteSpace(Model.Error))
+                    </div>
+                    @if (Model.Form.MovementId.HasValue)
                     {
-                        <div class="alert alert-danger mt-3">
-                            @Model.Error
+                        <div class="col-6 d-grid">
+                            <button type="button" class="btn btn-outline-danger" 
+                                    onclick="if(confirm('Delete this movement?')) document.getElementById('invDeleteForm').requestSubmit();">
+                                Delete
+                            </button>
                         </div>
                     }
-
                 </div>
-            </div>
-        </div>
+            </form>
 
+            <form id="invDeleteForm" method="post" asp-action="InventoryDelete" asp-controller="Portal"
+                  asp-route-from="@Model.From.ToString("yyyy-MM-dd")"
+                  asp-route-to="@Model.To.ToString("yyyy-MM-dd")"
+                  asp-route-q="@Model.Q"
+                  asp-route-section="@Model.Section"
+                  style="display:none;" data-spa-form="1">
+                <input type="hidden" name="movementId" value="@(Model.Form.MovementId ?? 0)" />
+            </form>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Error))
+            {
+                <div class="alert alert-danger mt-3" style="font-size:13px;">@Model.Error</div>
+            }
+        </div>
     </div>
 </div>
 
 <script>
-    let lineIdx = @Model.Form.Lines.Count;
+    (function() {
+        let lineIdx = @Model.Form.Lines.Count;
 
-    function addLineItem() {
-
-        let options = '';
-
-        @foreach (var p in Model.Products)
+        window.addLineItem = function() {
+            let options = '';
+            @foreach (var p in Model.Products)
             {
                 @:options += `<option value="@p.ProductId">@p.Name (@p.Barcode)</option>`;
-        }
+            }
 
-        const row = document.createElement("tr");
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td style="padding-right:0;">
+                    <select name="Form.Lines[${lineIdx}].ProductId" class="form-select form-select-sm" style="background:transparent; border:none; font-size:12px;">
+                        ${options}
+                    </select>
+                </td>
+                <td>
+                    <input name="Form.Lines[${lineIdx}].Quantity" class="form-control form-control-sm qty" type="number" value="1" min="1"
+                           style="background:transparent; border:none; text-align:center;" oninput="calcTotal()" />
+                </td>
+                <td>
+                    <input name="Form.Lines[${lineIdx}].UnitPrice" class="form-control form-control-sm price" type="number" value="0" step="0.01"
+                           style="background:transparent; border:none; text-align:right;" oninput="calcTotal()" />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm text-danger" style="padding:0; line-height:1;" onclick="removeLine(this)">×</button>
+                </td>
+            `;
 
-        row.innerHTML = `
-            <td>
-                <select name="Form.Lines[${lineIdx}].ProductId" class="form-select">
-                    ${options}
-                </select>
-            </td>
+            document.getElementById("lineItemsContainer").appendChild(row);
+            lineIdx++;
+            calcTotal();
+        };
 
-            <td>
-                <input name="Form.Lines[${lineIdx}].Quantity"
-                       class="form-control qty"
-                       type="number"
-                       value="1"
-                       min="1"
-                       oninput="calcTotal()">
-            </td>
+        window.removeLine = function(btn) {
+            btn.closest("tr").remove();
+            calcTotal();
+        };
 
-            <td>
-                <input name="Form.Lines[${lineIdx}].UnitPrice"
-                       class="form-control price"
-                       type="number"
-                       value="0"
-                       step="0.01"
-                       oninput="calcTotal()">
-            </td>
+        window.calcTotal = function() {
+            let qty = 0;
+            let total = 0;
 
-            <td>
-                <button type="button"
-                        class="btn btn-sm btn-danger"
-                        onclick="removeLine(this)">
-                    X
-                </button>
-            </td>
-        `;
+            document.querySelectorAll("#lineItemsContainer tr").forEach(row => {
+                let q = parseFloat(row.querySelector(".qty")?.value || 0);
+                let p = parseFloat(row.querySelector(".price")?.value || 0);
+                qty += q;
+                total += q * p;
+            });
 
-        document.getElementById("lineItemsContainer").appendChild(row);
-        lineIdx++;
+            const tq = document.getElementById("totalQty");
+            const tc = document.getElementById("totalCost");
+            if (tq) tq.innerText = qty;
+            if (tc) tc.innerText = total.toLocaleString('vi-VN');
+        };
+
         calcTotal();
-    }
-
-    function removeLine(btn) {
-        btn.closest("tr").remove();
-        calcTotal();
-    }
-
-    function calcTotal() {
-
-        let qty = 0;
-        let total = 0;
-
-        document.querySelectorAll("#lineItemsContainer tr").forEach(row => {
-
-            let q = parseFloat(row.querySelector(".qty")?.value || 0);
-            let p = parseFloat(row.querySelector(".price")?.value || 0);
-
-            qty += q;
-            total += q * p;
-        });
-
-        document.getElementById("totalQty").innerText = qty;
-        document.getElementById("totalCost").innerText = total.toLocaleString();
-    }
-
-    document.addEventListener("input", calcTotal);
-    window.onload = calcTotal;
+    })();
 </script>
